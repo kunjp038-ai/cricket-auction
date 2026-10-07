@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import Badge from '../components/Badge.jsx';
@@ -31,6 +31,7 @@ export default function AuctionPage() {
   const [pool, setPool] = useState([]);
   const [teamId, setTeamId] = useState('');
   const [amount, setAmount] = useState('');
+  const typingTimer = useRef(null);
 
   const load = useCallback(() => auctionApi.current().then(setState).catch((e) => toast.error(e.message)), [toast]);
   useEffect(() => { load(); }, [load]);
@@ -101,6 +102,21 @@ export default function AuctionPage() {
 
   const step = settings.bidIncrement || 500;
 
+  // Every price change (a new bid was called in the room) restarts the countdown.
+  const restartTimer = () => {
+    if (!auction?.timerEndsAt) return;
+    auctionApi.resetTimer(auction._id).then((r) => { if (r?.state) setState(r.state); }).catch(() => {});
+  };
+  const bump = (next) => {
+    setAmount(String(next));
+    restartTimer();
+  };
+  const onAmountTyped = (value) => {
+    setAmount(value);
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(restartTimer, 700);
+  };
+
   return (
     <>
       {/* Top strip */}
@@ -159,7 +175,7 @@ export default function AuctionPage() {
                   {auction.timerEndsAt && (
                     <div className="flex gap-sm">
                       <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} />
-                      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => run('timer', () => auctionApi.resetTimer(auction._id))} title="Restart timer">↻ Restart</button>
+                      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => run('timer', () => auctionApi.resetTimer(auction._id))} title="Restart timer (also restarts automatically on every price change)">↻ Restart</button>
                     </div>
                   )}
                 </div>
@@ -182,9 +198,9 @@ export default function AuctionPage() {
               <div className="field">
                 <label>Sold price (₹)</label>
                 <div className="flex">
-                  <button type="button" className="btn btn-ghost" onClick={() => setAmount(String(Math.max(auction.basePrice, amt - step)))}>−{step}</button>
-                  <input type="number" min={auction.basePrice} step={step} value={amount} onChange={(e) => setAmount(e.target.value)} style={{ fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }} />
-                  <button type="button" className="btn btn-ghost" onClick={() => setAmount(String((amt || auction.basePrice) + step))}>+{step}</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => bump(Math.max(auction.basePrice, amt - step))}>−{step}</button>
+                  <input type="number" min={auction.basePrice} step={step} value={amount} onChange={(e) => onAmountTyped(e.target.value)} style={{ fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }} />
+                  <button type="button" className="btn btn-ghost" onClick={() => bump((amt || auction.basePrice) + step)}>+{step}</button>
                 </div>
                 {amountErr ? <span className="error-text">{amountErr}</span> : <span className="help">{selectedTeam ? `${selectedTeam.name} will have ${inr(selectedTeam.remainingBudget - amt)} left` : 'Select the team that won the bid'}</span>}
               </div>
