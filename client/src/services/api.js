@@ -83,6 +83,7 @@ export const auctionApi = {
   sold: (auctionId, data) => api.post(`/auctions/${auctionId}/sold`, data || {}),
   unsold: (auctionId) => api.post(`/auctions/${auctionId}/unsold`),
   cancel: (auctionId) => api.post(`/auctions/${auctionId}/cancel`),
+  resetTimer: (auctionId, seconds) => api.post(`/auctions/${auctionId}/timer`, seconds ? { seconds } : {}),
   next: () => api.post('/auctions/next'),
   reauction: (includeUnsold = true) => api.post('/auctions/reauction', { includeUnsold }),
   history: (params) => api.get('/auctions/history', { params }),

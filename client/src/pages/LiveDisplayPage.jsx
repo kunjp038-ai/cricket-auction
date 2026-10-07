@@ -3,6 +3,7 @@ import Avatar from '../components/Avatar.jsx';
 import Badge from '../components/Badge.jsx';
 import TeamCard from '../components/TeamCard.jsx';
 import Spinner from '../components/Spinner.jsx';
+import CountdownTimer from '../components/CountdownTimer.jsx';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { inr } from '../utils/format.js';
@@ -53,7 +54,7 @@ export default function LiveDisplayPage() {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats } = state;
+  const { auction, teams, settings, stats, roundConfig, serverTime } = state;
   const player = auction?.player;
 
   return (
@@ -69,15 +70,19 @@ export default function LiveDisplayPage() {
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>
         <div className="card kpi tone-danger"><span className="label">Total Unsold</span><span className="value">{stats.totalUnsold}</span></div>
-        <div className="card kpi tone-warning"><span className="label">Teams</span><span className="value">{teams.length}</span></div>
+        <div className="card kpi tone-warning"><span className="label">Base Price</span><span className="value">{inr(roundConfig.basePrice)}</span></div>
       </div>
 
       {auction ? (
         <div className="auction-stage">
           <div className="card player-stage">
-            <Avatar src={player.photo} name={player.name} size="xl" />
+            <Avatar src={player.photo} name={player.name} size="huge" square />
             <div className="grow">
-              <div className="flex gap-sm"><Badge status="LIVE">● ON THE BLOCK</Badge>{player.releaseCount > 0 && <Badge tone="warning">Re-Auction</Badge>}</div>
+              <div className="flex gap-sm flex-wrap" style={{ marginBottom: '.5rem' }}>
+                <span className="player-no" style={{ fontSize: '2.2rem' }}>#{player.playerNo ?? '-'}</span>
+                <Badge status="LIVE">● ON THE BLOCK</Badge>
+                {player.releaseCount > 0 && <Badge tone="warning">Re-Auction</Badge>}
+              </div>
               <div className="name">{player.name}</div>
               <div className="meta">
                 <span className="chip">{player.playerType}</span>
@@ -85,12 +90,18 @@ export default function LiveDisplayPage() {
                 <span className="chip">🎯 {player.bowlingStyle}</span>
                 <span className="chip">👕 {player.tshirtSize}</span>
               </div>
-              <div><span className="muted">Base Price </span><strong style={{ fontSize: '1.6rem' }}>{inr(auction.basePrice)}</strong></div>
+              <div><span className="muted">Base Price </span><strong style={{ fontSize: '2rem', color: '#86efac' }}>{inr(auction.basePrice)}</strong></div>
             </div>
           </div>
           <div className="card bid-box">
-            <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>
-            <div className="current">{inr(auction.basePrice)}</div>
+            {auction.timerEndsAt ? (
+              <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} big />
+            ) : (
+              <>
+                <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>
+                <div className="current">{inr(auction.basePrice)}</div>
+              </>
+            )}
             <div className="bidder" style={{ fontSize: '1.4rem' }}>🔨 Bidding in progress…</div>
             {settings.maxBid > 0 && <div className="next">Maximum bid {inr(settings.maxBid)}</div>}
           </div>

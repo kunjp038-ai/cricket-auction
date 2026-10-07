@@ -15,6 +15,7 @@ const phone = (field, optional) => {
 const playerBody = (isUpdate = false) => {
   const opt = (chain) => (isUpdate ? chain.optional() : chain);
   return [
+    body('playerNo').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Player number must be a whole number of 1 or more').toInt(),
     opt(body('name').trim().notEmpty().withMessage('Player name is required').isLength({ max: 80 })),
     phone('phone', isUpdate),
     opt(body('playerType').isIn(PLAYER_TYPES).withMessage(`Player type must be one of: ${PLAYER_TYPES.join(', ')}`)),
@@ -23,7 +24,7 @@ const playerBody = (isUpdate = false) => {
     opt(body('tshirtSize').isIn(TSHIRT_SIZES).withMessage(`T-shirt size must be one of: ${TSHIRT_SIZES.join(', ')}`)),
     body('address').optional({ values: 'falsy' }).trim().isLength({ max: 1000 }).withMessage('Address is too long'),
     body('photo').optional({ values: 'falsy' }).trim().isLength({ max: 500 }),
-    opt(body('basePrice').isFloat({ min: 0 }).withMessage('Base price must be a positive number').toFloat()),
+    body('basePrice').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Base price must be a positive number').toFloat(),
     body('status').optional().isIn(PLAYER_STATUS).withMessage(`Status must be one of: ${PLAYER_STATUS.join(', ')}`),
   ];
 };
@@ -56,8 +57,14 @@ const settingsBody = [
   body('minBid').optional().isFloat({ min: 0 }).withMessage('Minimum bid must be >= 0').toFloat(),
   body('maxBid').optional().isFloat({ min: 0 }).withMessage('Maximum bid must be >= 0 (0 = no limit)').toFloat(),
   body('defaultBasePrice').optional().isFloat({ min: 0 }).toFloat(),
+  body('defaultTimerSeconds').optional().isInt({ min: 0, max: 3600 }).withMessage('Timer must be 0-3600 seconds').toInt(),
   body('allowPreviousTeamRebid').optional().isBoolean().toBoolean(),
+  body('autoNextPlayer').optional().isBoolean().toBoolean(),
   body('auctionName').optional().trim().isLength({ max: 100 }),
+  body('roundConfigs').optional().isArray({ max: 50 }).withMessage('roundConfigs must be an array'),
+  body('roundConfigs.*.round').isInt({ min: 1 }).withMessage('Round number must be 1 or more').toInt(),
+  body('roundConfigs.*.basePrice').isFloat({ min: 0 }).withMessage('Round base price must be a positive number').toFloat(),
+  body('roundConfigs.*.timerSeconds').optional().isInt({ min: 0, max: 3600 }).withMessage('Timer must be 0-3600 seconds').toInt(),
 ];
 
 const loginBody = [

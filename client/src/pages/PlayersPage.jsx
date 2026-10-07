@@ -29,7 +29,7 @@ export default function PlayersPage() {
     battingStyle: params.get('battingStyle') || '',
     bowlingStyle: params.get('bowlingStyle') || '',
     status: params.get('status') || '',
-    sort: params.get('sort') || 'name',
+    sort: params.get('sort') || 'playerNo',
     order: params.get('order') || 'asc',
     page: Number(params.get('page') || 1),
     limit: 20,
@@ -91,7 +91,7 @@ export default function PlayersPage() {
       />
 
       <div className="filters">
-        <input className="search" placeholder="🔍 Search by name…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="search" placeholder="🔍 Search by name or number…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <select value={q.playerType} onChange={(e) => setQ({ playerType: e.target.value })}>
           <option value="">All types</option>
           {meta.playerTypes.map((t) => <option key={t}>{t}</option>)}
@@ -109,10 +109,10 @@ export default function PlayersPage() {
           {meta.statuses.map((t) => <option key={t}>{t}</option>)}
         </select>
         <select value={`${q.sort}:${q.order}`} onChange={(e) => { const [sort, order] = e.target.value.split(':'); setQ({ sort, order, page: q.page }); }}>
+          <option value="playerNo:asc">Number ↑</option>
+          <option value="playerNo:desc">Number ↓</option>
           <option value="name:asc">Name A→Z</option>
           <option value="name:desc">Name Z→A</option>
-          <option value="basePrice:asc">Base price ↑</option>
-          <option value="basePrice:desc">Base price ↓</option>
           <option value="status:asc">Status A→Z</option>
           <option value="createdAt:desc">Newest first</option>
         </select>
@@ -130,12 +130,12 @@ export default function PlayersPage() {
             <table>
               <thead>
                 <tr>
+                  <th className="sortable" onClick={() => toggleSort('playerNo')}>No.{arrow('playerNo')}</th>
                   <th className="sortable" onClick={() => toggleSort('name')}>Player{arrow('name')}</th>
                   <th className="sortable" onClick={() => toggleSort('playerType')}>Type{arrow('playerType')}</th>
                   <th>Batting</th>
                   <th>Bowling</th>
                   <th>Size</th>
-                  <th className="num sortable" onClick={() => toggleSort('basePrice')}>Base Price{arrow('basePrice')}</th>
                   <th className="sortable" onClick={() => toggleSort('status')}>Status{arrow('status')}</th>
                   <th>Team</th>
                   <th className="text-right">Actions</th>
@@ -144,6 +144,7 @@ export default function PlayersPage() {
               <tbody>
                 {data.items.map((p) => (
                   <tr key={p._id}>
+                    <td><span className="player-no sm">#{p.playerNo ?? '-'}</span></td>
                     <td>
                       <div className="flex row-click" onClick={() => navigate(`/players/${p._id}`)}>
                         <Avatar src={p.photo} name={p.name} size="sm" />
@@ -157,7 +158,6 @@ export default function PlayersPage() {
                     <td>{p.battingStyle}</td>
                     <td>{p.bowlingStyle}</td>
                     <td>{p.tshirtSize}</td>
-                    <td className="num">{inr(p.basePrice)}</td>
                     <td><Badge status={p.status} /></td>
                     <td>{p.currentTeam ? <span className="flex gap-sm"><span className="color-dot" style={{ background: p.currentTeam.color }} />{p.currentTeam.name} <span className="small muted">({inr(p.soldPrice)})</span></span> : <span className="muted">-</span>}</td>
                     <td className="text-right nowrap">

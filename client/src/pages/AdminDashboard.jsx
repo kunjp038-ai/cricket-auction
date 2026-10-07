@@ -119,7 +119,7 @@ export default function AdminDashboard() {
               <div key={s._id} className="flex row-click" onClick={() => navigate(`/players/${s.player?._id}`)}>
                 <Avatar src={s.player?.photo} name={s.player?.name} size="sm" />
                 <div className="grow" style={{ minWidth: 0 }}>
-                  <strong>{s.player?.name}</strong>
+                  <strong>#{s.player?.playerNo ?? '-'} {s.player?.name}</strong>
                   <div className="small muted">→ {s.winningTeam?.name} · Round {s.round} · {fmtDate(s.completedAt)}</div>
                 </div>
                 <Badge tone="success">{inr(s.finalBid)}</Badge>

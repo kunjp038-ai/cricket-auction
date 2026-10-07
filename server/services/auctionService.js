@@ -55,7 +55,21 @@ async function getCurrentState() {
     bids = await Bid.find({ auction: auction._id }).sort({ createdAt: -1 }).limit(25).populate('team', 'name color logo');
   }
 
-  return { auction, bids, teams, settings, stats, nextBidAmount: computeNextBid(auction, settings) };
+  return {
+    auction,
+    bids,
+    teams,
+    settings,
+    stats,
+    roundConfig: settings.getRoundConfig(settings.currentRound),
+    nextBidAmount: computeNextBid(auction, settings),
+    serverTime: new Date(),
+  };
+}
+
+/** Next player in the pool, ordered by player number (then name for players without one). */
+function nextPoolPlayerQuery() {
+  return Player.findOne({ status: { $in: POOL_STATUSES } }).sort({ playerNo: 1, name: 1 });
 }
 
 async function broadcast(event, extra = {}) {
@@ -82,8 +96,7 @@ async function startAuction({ playerId, adminId }) {
       throw ApiError.badRequest(`Player is "${player.status}" and cannot be auctioned right now.`);
     }
   } else {
-    // Released / re-auction players first, then fresh players, alphabetically.
-    player = await Player.findOne({ status: { $in: POOL_STATUSES } }).sort({ status: -1, name: 1 });
+    player = await nextPoolPlayerQuery();
     if (!player) throw ApiError.badRequest('No players left in the auction pool.');
   }
 
@@ -96,14 +109,20 @@ async function startAuction({ playerId, adminId }) {
 
   await ensureRound(settings.currentRound);
 
+  // Every player in a round shares the round's base price and timer (configured in Settings).
+  const roundConfig = settings.getRoundConfig(settings.currentRound);
+  const now = Date.now();
+
   const auction = await Auction.create({
     player: player._id,
     round: settings.currentRound,
     status: 'LIVE',
-    basePrice: player.basePrice,
+    basePrice: roundConfig.basePrice,
     currentBid: 0,
     bidCount: 0,
     previousTeam,
+    timerSeconds: roundConfig.timerSeconds,
+    timerEndsAt: roundConfig.timerSeconds > 0 ? new Date(now + roundConfig.timerSeconds * 1000) : null,
     conductedBy: adminId || null,
   });
 
@@ -111,9 +130,37 @@ async function startAuction({ playerId, adminId }) {
   await player.save();
 
   const state = await broadcast('auction:started', {
-    message: `${player.name} is now up for auction (base ${formatINR(player.basePrice)})`,
+    message: `#${player.playerNo || '-'} ${player.name} is now up for auction (base ${formatINR(roundConfig.basePrice)})`,
   });
   return { auction: state.auction, state };
+}
+
+/** Restarts the countdown for the live auction. */
+async function resetTimer({ auctionId, seconds }) {
+  const auction = await Auction.findById(auctionId);
+  if (!auction) throw ApiError.notFound('Auction not found');
+  if (auction.status !== 'LIVE') throw ApiError.badRequest('This auction is no longer live.');
+  const secs = Number.isFinite(Number(seconds)) && Number(seconds) > 0 ? Number(seconds) : auction.timerSeconds;
+  if (!secs) throw ApiError.badRequest('No timer configured for this round.');
+  auction.timerSeconds = secs;
+  auction.timerEndsAt = new Date(Date.now() + secs * 1000);
+  await auction.save();
+  const state = await broadcast('auction:timer', { message: `Timer restarted (${secs}s)` });
+  return { auction: state.auction, state };
+}
+
+/** After SOLD/UNSOLD: put the next player on the block automatically when enabled. */
+async function maybeAutoNext(adminId) {
+  const settings = await Settings.get();
+  if (!settings.autoNextPlayer) return null;
+  const next = await nextPoolPlayerQuery();
+  if (!next) return null;
+  try {
+    return await startAuction({ adminId });
+  } catch (err) {
+    console.warn('Auto-next failed:', err.message);
+    return null;
+  }
 }
 
 async function nextPlayer({ adminId }) {
@@ -326,7 +373,9 @@ async function markSold({ auctionId, adminId, teamId, amount }) {
     },
     message: `SOLD! ${result.player.name} to ${result.team.name} for ${formatINR(result.finalBid)}`,
   });
-  return { ...result, state };
+
+  const next = await maybeAutoNext(adminId);
+  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next) };
 }
 
 async function markUnsold({ auctionId, adminId, silent = false }) {
@@ -359,7 +408,9 @@ async function markUnsold({ auctionId, adminId, silent = false }) {
     player: { name: result.player.name, id: result.player._id },
     message: `${result.player.name} goes UNSOLD`,
   });
-  return { ...result, state };
+
+  const next = await maybeAutoNext(adminId);
+  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next) };
 }
 
 /** Takes a player off the block without recording a result (e.g. started by mistake). */
@@ -619,8 +670,8 @@ async function getRounds() {
 
 async function getPool() {
   const [pool, unsold, released] = await Promise.all([
-    Player.find({ status: { $in: POOL_STATUSES } }).sort({ status: -1, name: 1 }),
-    Player.find({ status: 'Unsold' }).sort({ name: 1 }),
+    Player.find({ status: { $in: POOL_STATUSES } }).sort({ playerNo: 1, name: 1 }),
+    Player.find({ status: 'Unsold' }).sort({ playerNo: 1, name: 1 }),
     Player.find({ releaseCount: { $gt: 0 } }).sort({ lastReleasedAt: -1 }).populate('currentTeam', 'name logo color'),
   ]);
   return { pool, unsold, released };
@@ -634,6 +685,7 @@ module.exports = {
   markSold,
   markUnsold,
   cancelAuction,
+  resetTimer,
   releasePlayer,
   startReAuction,
   getHistory,

@@ -67,10 +67,18 @@ async function run() {
   settings.minBid = 500;
   settings.maxBid = 0;
   settings.defaultBasePrice = 2000;
+  settings.defaultTimerSeconds = 60;
   settings.allowPreviousTeamRebid = true;
+  settings.autoNextPlayer = true;
+  if (!settings.roundConfigs || settings.roundConfigs.length === 0) {
+    settings.roundConfigs = [
+      { round: 1, basePrice: 2000, timerSeconds: 60 },
+      { round: 2, basePrice: 1000, timerSeconds: 45 },
+    ];
+  }
   await settings.save();
   await Round.updateOne({ number: settings.currentRound }, { $setOnInsert: { number: settings.currentRound } }, { upsert: true });
-  console.log('Settings ready (increment ₹500, min ₹500, no max, previous team may re-bid)');
+  console.log('Settings ready (Round 1 base ₹2,000 / 60s, Round 2 base ₹1,000 / 45s, auto-next on)');
 
   // Teams + captains
   for (const t of TEAMS) {
@@ -87,12 +95,15 @@ async function run() {
     console.log(`Team created: ${team.name} (captain ${captain.name})`);
   }
 
-  // Players
+  // Players (numbered sequentially; the auction runs in player-number order)
   let added = 0;
+  const lastNo = await Player.findOne({ playerNo: { $type: 'number' } }).sort({ playerNo: -1 }).select('playerNo');
+  let nextNo = lastNo ? lastNo.playerNo + 1 : 1;
   for (const [name, playerType, battingStyle, bowlingStyle, tshirtSize, basePrice] of PLAYERS) {
     const exists = await Player.findOne({ name });
     if (exists) continue;
     await Player.create({
+      playerNo: nextNo++,
       name, playerType, battingStyle, bowlingStyle, tshirtSize, basePrice,
       phone: `98765${String(10000 + added).padStart(5, '0')}`,
       address: 'Ahmedabad, Gujarat',

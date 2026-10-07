@@ -6,17 +6,18 @@ import TeamCard from '../components/TeamCard.jsx';
 import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 import EmptyState from '../components/EmptyState.jsx';
+import CountdownTimer from '../components/CountdownTimer.jsx';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
-import { inr, fmtTime } from '../utils/format.js';
+import { inr } from '../utils/format.js';
 
 /**
  * Admin live auction console.
- * Teams call their bids out loud in the room. The admin only records the result:
- * pick the winning team, enter the final price, press SOLD (or UNSOLD / NEXT).
- * The server broadcasts the new state so the public /live screen updates instantly.
+ * Players come up in player-number order. Teams call their bids out loud; the admin
+ * records the result (winning team + final price) and presses SOLD. The next player is
+ * put on the block automatically (Settings → Auto next player).
  */
 export default function AuctionPage() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export default function AuctionPage() {
   };
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats } = state;
+  const { auction, teams, settings, stats, roundConfig, serverTime } = state;
   const player = auction?.player;
   const selectedTeam = teams.find((t) => t._id === teamId);
   const amt = Number(amount);
@@ -88,15 +89,8 @@ export default function AuctionPage() {
   const amountErr = amountProblem();
   const canSell = !!auction && !!selectedTeam && !teamProblem(selectedTeam) && !amountErr;
 
-  const sell = () =>
-    run('sold', () => auctionApi.sold(auction._id, { teamId, amount: amt }), {
-      confirmOpts: {
-        title: 'Confirm SOLD',
-        message: `${player.name} → ${selectedTeam.name} for ${inr(amt)}. The amount will be deducted from the team's budget now.`,
-        confirmText: 'SOLD!',
-        tone: 'primary',
-      },
-    });
+  // No confirmation on SOLD: the team + price were chosen explicitly, and speed matters live.
+  const sell = () => run('sold', () => auctionApi.sold(auction._id, { teamId, amount: amt }));
 
   const step = settings.bidIncrement || 500;
 
@@ -108,6 +102,7 @@ export default function AuctionPage() {
           <div>
             <div className="small muted" style={{ letterSpacing: 2 }}>{settings.auctionName.toUpperCase()}</div>
             <h1 style={{ margin: 0 }}>Round {stats.round}</h1>
+            <div className="small muted">Base {inr(roundConfig.basePrice)} · Timer {roundConfig.timerSeconds ? `${roundConfig.timerSeconds}s` : 'off'}</div>
           </div>
           <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected ? 'Realtime on' : polling ? 'Live (polling)' : 'Reconnecting…'}</span>
         </div>
@@ -120,9 +115,9 @@ export default function AuctionPage() {
       {!auction ? (
         <div className="card mb">
           <EmptyState icon="🔨" title="No player on the block">
-            <p className="muted">{stats.playersRemaining > 0 ? `${stats.playersRemaining} players are waiting in the pool for Round ${stats.round}.` : 'The pool for this round is empty. Start a re-auction round to bring back unsold players.'}</p>
+            <p className="muted">{stats.playersRemaining > 0 ? `${stats.playersRemaining} players are waiting in the pool for Round ${stats.round} (base price ${inr(roundConfig.basePrice)}).` : 'The pool for this round is empty. Start a re-auction round to bring back unsold players.'}</p>
             <div className="flex flex-wrap" style={{ justifyContent: 'center' }}>
-              <button className="btn btn-primary btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={() => run('start', () => auctionApi.start())}>▶ Start Auction (next in pool)</button>
+              <button className="btn btn-primary btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={() => run('start', () => auctionApi.start())}>▶ Start Auction (next by number)</button>
               <button className="btn btn-ghost btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={openPicker}>Pick a specific player</button>
               {stats.playersRemaining === 0 && stats.totalUnsold > 0 && (
                 <button className="btn btn-accent btn-lg" disabled={busy} onClick={() => run('reauction', () => auctionApi.reauction(true), { confirmOpts: { title: 'Start re-auction round?', message: `Round ${stats.round} will close and ${stats.totalUnsold} unsold players move into Round ${stats.round + 1}.`, confirmText: 'Start next round', tone: 'accent' } })}>🔁 Start Re-Auction Round</button>
@@ -135,9 +130,10 @@ export default function AuctionPage() {
           <div className="auction-stage">
             {/* Player details */}
             <div className="card player-stage">
-              <Avatar src={player.photo} name={player.name} size="xl" />
+              <Avatar src={player.photo} name={player.name} size="xxl" square />
               <div className="grow">
-                <div className="flex gap-sm flex-wrap">
+                <div className="flex gap-sm flex-wrap" style={{ marginBottom: '.4rem' }}>
+                  <span className="player-no">#{player.playerNo ?? '-'}</span>
                   <Badge status="LIVE">● ON THE BLOCK</Badge>
                   {player.releaseCount > 0 && <Badge tone="warning">Re-Auction · previously {auction.previousTeam?.name || 'owned'}</Badge>}
                 </div>
@@ -148,10 +144,14 @@ export default function AuctionPage() {
                   <span className="chip">🎯 {player.bowlingStyle}</span>
                   <span className="chip">👕 {player.tshirtSize}</span>
                 </div>
-                <div className="flex flex-wrap" style={{ gap: '1.5rem' }}>
-                  <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.6rem', color: '#86efac' }}>{inr(auction.basePrice)}</strong></div>
-                  <div><div className="small muted">Phone</div><strong style={{ fontSize: '1.1rem' }}>{player.phone}</strong></div>
-                  <div><div className="small muted">Started</div><strong style={{ fontSize: '1.1rem' }}>{fmtTime(auction.startedAt)}</strong></div>
+                <div className="flex flex-wrap" style={{ gap: '1.5rem', alignItems: 'flex-end' }}>
+                  <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.8rem', color: '#86efac' }}>{inr(auction.basePrice)}</strong></div>
+                  {auction.timerEndsAt && (
+                    <div className="flex gap-sm">
+                      <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} />
+                      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => run('timer', () => auctionApi.resetTimer(auction._id))} title="Restart timer">↻ Restart</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -179,8 +179,9 @@ export default function AuctionPage() {
                 {amountErr ? <span className="error-text">{amountErr}</span> : <span className="help">{selectedTeam ? `${selectedTeam.name} will have ${inr(selectedTeam.remainingBudget - amt)} left` : 'Select the team that won the bid'}</span>}
               </div>
               <button className="btn btn-primary btn-lg btn-block" disabled={!!busy || !canSell} onClick={sell}>
-                ✅ SOLD {selectedTeam ? `→ ${selectedTeam.name} for ${inr(amt || 0)}` : ''}
+                {busy === 'sold' ? 'Saving…' : <>✅ SOLD {selectedTeam ? `→ ${selectedTeam.name} for ${inr(amt || 0)}` : ''}</>}
               </button>
+              {settings.autoNextPlayer && <span className="help text-center">Next player (#{'by number'}) comes up automatically after SOLD / UNSOLD.</span>}
             </div>
           </div>
 
@@ -206,7 +207,7 @@ export default function AuctionPage() {
             <button
               className="btn btn-danger btn-lg"
               disabled={!!busy}
-              onClick={() => run('unsold', () => auctionApi.unsold(auction._id), { confirmOpts: { title: 'Mark UNSOLD', message: `${player.name} will be marked UNSOLD. The player can come back in a re-auction round.`, confirmText: 'UNSOLD', tone: 'danger' } })}
+              onClick={() => run('unsold', () => auctionApi.unsold(auction._id), { confirmOpts: { title: 'Mark UNSOLD', message: `#${player.playerNo} ${player.name} will be marked UNSOLD. The player can come back in a re-auction round.`, confirmText: 'UNSOLD', tone: 'danger' } })}
             >
               ❌ UNSOLD
             </button>
@@ -235,12 +236,13 @@ export default function AuctionPage() {
         {pool.length === 0 ? <p className="muted">Pool is empty.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Player</th><th>Type</th><th>Status</th><th className="num">Base</th><th /></tr></thead>
+              <thead><tr><th>No.</th><th>Player</th><th>Type</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {pool.map((p) => (
                   <tr key={p._id}>
+                    <td><span className="player-no sm">#{p.playerNo ?? '-'}</span></td>
                     <td><div className="flex"><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong></div></td>
-                    <td>{p.playerType}</td><td><Badge status={p.status} /></td><td className="num">{inr(p.basePrice)}</td>
+                    <td>{p.playerType}</td><td><Badge status={p.status} /></td>
                     <td className="text-right"><button className="btn btn-primary btn-sm" onClick={() => { setPickOpen(false); run('start', () => auctionApi.start(p._id)); }}>Auction</button></td>
                   </tr>
                 ))}

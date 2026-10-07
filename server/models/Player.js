@@ -11,6 +11,8 @@ const POOL_STATUSES = ['Available', 'Re-Auction', 'Released'];
 
 const playerSchema = new mongoose.Schema(
   {
+    // Unique auction number printed on the player's card; players are auctioned in this order.
+    playerNo: { type: Number, min: [1, 'Player number must be at least 1'] },
     name: { type: String, required: [true, 'Player name is required'], trim: true, maxlength: 80 },
     phone: {
       type: String,
@@ -24,7 +26,8 @@ const playerSchema = new mongoose.Schema(
     tshirtSize: { type: String, required: true, enum: TSHIRT_SIZES, default: 'M' },
     address: { type: String, trim: true, maxlength: 1000, default: '' },
     photo: { type: String, trim: true, default: '' },
-    basePrice: { type: Number, required: true, min: [0, 'Base price cannot be negative'] },
+    // Informational only: the auction uses the base price configured for the round in Settings.
+    basePrice: { type: Number, default: 0, min: [0, 'Base price cannot be negative'] },
     status: { type: String, enum: PLAYER_STATUS, default: 'Available', index: true },
     currentTeam: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null, index: true },
     // Price the player was last sold for (0 when not owned by a team).
@@ -39,6 +42,7 @@ const playerSchema = new mongoose.Schema(
 
 playerSchema.index({ name: 'text' });
 playerSchema.index({ name: 1 });
+playerSchema.index({ playerNo: 1 }, { unique: true, partialFilterExpression: { playerNo: { $type: 'number' } } });
 playerSchema.index({ playerType: 1, status: 1 });
 
 const Player = mongoose.model('Player', playerSchema);

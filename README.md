@@ -32,7 +32,10 @@ A full-stack system to run a live cricket player auction: register players, crea
 
 ## Features
 
-- **Player management** – add/edit/view/delete players with photo, type, batting/bowling style, T‑shirt size, address, base price, status. Search by name, filter by type/batting/bowling/status, sort by name/base price/status, pagination.
+- **Player numbers & order** – every player gets a unique number (auto‑suggested, editable). The auction calls players in number order (#1, #2, …), and the number is shown everywhere.
+- **Per‑round base price & timer** – Settings → Rounds: each round has one base price and one countdown that apply to every player in that round (e.g. Round 1 ₹2,000 / 60 s, Round 2 ₹1,000 / 45 s). The admin can restart the timer for a player.
+- **Verbal bidding, fast recording** – teams bid out loud; the admin selects the winning team, enters the final price and presses SOLD. The next player appears automatically (toggle in Settings).
+- **Player management** – add/edit/view/delete players with number, photo, type, batting/bowling style, T‑shirt size, address, status. Search by name or number, filter by type/batting/bowling/status, sort, pagination.
 - **Team management** – name, logo, colour, captain, total/used/remaining budget (always derived), min/max squad size, budget progress bar.
 - **Captain management** – one captain per team, enforced in the database; reassigning moves the captain.
 - **Live auction console** – current player card, current bid, highest bidder (highlighted), per-team **BID** buttons with the exact next amount, **SOLD / UNSOLD / NEXT PLAYER / Cancel**, bid log, round statistics.
@@ -165,6 +168,7 @@ The client needs no environment variables in development (Vite proxies `/api`, `
 ```bash
 npm run seed              # adds data, skips what already exists
 npm run seed -- --fresh   # wipes all auction data first
+node server/scripts/assignPlayerNumbers.js   # one-time: number existing players that have no number
 ```
 
 ### Development (backend + frontend together)
@@ -369,7 +373,9 @@ Base URL: `http://localhost:5000/api`. All responses are JSON `{ success, ... }`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET / PUT | `/settings` | `{ auctionName, bidIncrement, minBid, maxBid, defaultBasePrice, allowPreviousTeamRebid }` |
+| GET / PUT | `/settings` | `{ auctionName, bidIncrement, maxBid, defaultBasePrice, defaultTimerSeconds, allowPreviousTeamRebid, autoNextPlayer, roundConfigs: [{ round, basePrice, timerSeconds }] }` |
+| POST | `/auctions/:id/timer` | Restart the countdown for the live player (`{ seconds }` optional) |
+| GET | `/players/meta` | Enum lists + `nextPlayerNo` |
 | GET | `/dashboard` | Admin KPIs, live auction, recent sales, teams |
 | POST | `/upload` | multipart field `image` → `{ url: "/uploads/..." }` |
 | GET | `/health` | |

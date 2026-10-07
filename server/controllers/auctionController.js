@@ -26,17 +26,29 @@ exports.sold = asyncHandler(async (req, res) => {
   });
   res.json({
     success: true,
-    message: `${result.player.name} SOLD to ${result.team.name} for ₹${result.finalBid.toLocaleString('en-IN')}`,
+    message: `${result.player.name} SOLD to ${result.team.name} for ₹${result.finalBid.toLocaleString('en-IN')}${result.autoStarted ? ' · next player is up' : ''}`,
     auction: result.auction,
     player: result.player,
     team: result.team,
     state: result.state,
+    autoStarted: result.autoStarted,
   });
 });
 
 exports.unsold = asyncHandler(async (req, res) => {
   const result = await auctionService.markUnsold({ auctionId: req.params.id, adminId: req.admin._id });
-  res.json({ success: true, message: `${result.player.name} marked UNSOLD`, auction: result.auction, state: result.state });
+  res.json({
+    success: true,
+    message: `${result.player.name} marked UNSOLD${result.autoStarted ? ' · next player is up' : ''}`,
+    auction: result.auction,
+    state: result.state,
+    autoStarted: result.autoStarted,
+  });
+});
+
+exports.resetTimer = asyncHandler(async (req, res) => {
+  const result = await auctionService.resetTimer({ auctionId: req.params.id, seconds: req.body.seconds });
+  res.json({ success: true, message: 'Timer restarted', auction: result.auction, state: result.state });
 });
 
 exports.cancel = asyncHandler(async (req, res) => {

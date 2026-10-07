@@ -1,17 +1,34 @@
 const { Player, Auction, Settings } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { emitAuctionEvent } = require('../utils/socket');
-const { formatINR } = require('../utils/format');
 
-const SORT_FIELDS = { name: 'name', basePrice: 'basePrice', status: 'status', createdAt: 'createdAt', playerType: 'playerType' };
+const SORT_FIELDS = {
+  playerNo: 'playerNo', name: 'name', basePrice: 'basePrice', status: 'status', createdAt: 'createdAt', playerType: 'playerType',
+};
 
 function escapeRegex(str = '') {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Next free player number (max + 1). */
+async function nextPlayerNo() {
+  const last = await Player.findOne({ playerNo: { $type: 'number' } }).sort({ playerNo: -1 }).select('playerNo');
+  return last ? last.playerNo + 1 : 1;
+}
+
+async function assertPlayerNoFree(playerNo, excludeId) {
+  const dup = await Player.findOne({ playerNo, ...(excludeId ? { _id: { $ne: excludeId } } : {}) }).select('name');
+  if (dup) throw ApiError.conflict(`Player number ${playerNo} is already used by ${dup.name}.`);
+}
+
 async function listPlayers(query = {}) {
   const filter = {};
-  if (query.search) filter.name = new RegExp(escapeRegex(query.search.trim()), 'i');
+  if (query.search) {
+    const s = query.search.trim();
+    const or = [{ name: new RegExp(escapeRegex(s), 'i') }];
+    if (/^\d+$/.test(s)) or.push({ playerNo: Number(s) });
+    filter.$or = or;
+  }
   if (query.playerType) filter.playerType = query.playerType;
   if (query.battingStyle) filter.battingStyle = query.battingStyle;
   if (query.bowlingStyle) filter.bowlingStyle = query.bowlingStyle;
@@ -19,7 +36,7 @@ async function listPlayers(query = {}) {
   if (query.team) filter.currentTeam = query.team;
   if (query.released === 'true') filter.releaseCount = { $gt: 0 };
 
-  const sortField = SORT_FIELDS[query.sort] || 'name';
+  const sortField = SORT_FIELDS[query.sort] || 'playerNo';
   const sortDir = query.order === 'desc' ? -1 : 1;
 
   const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -27,7 +44,7 @@ async function listPlayers(query = {}) {
 
   const [items, total] = await Promise.all([
     Player.find(filter)
-      .sort({ [sortField]: sortDir, _id: 1 })
+      .sort({ [sortField]: sortDir, name: 1, _id: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('currentTeam', 'name logo color'),
@@ -45,13 +62,16 @@ async function getPlayer(id) {
 
 async function createPlayer(data) {
   const settings = await Settings.get();
-  if (data.basePrice < settings.minBid) {
-    throw ApiError.badRequest(`Base price must be at least the minimum bid (${formatINR(settings.minBid)}).`);
-  }
   if (data.status && data.status === 'Sold') {
     throw ApiError.badRequest('A player cannot be created as Sold. Sell players through the auction.');
   }
+
+  let playerNo = data.playerNo ? Number(data.playerNo) : null;
+  if (playerNo) await assertPlayerNoFree(playerNo);
+  else playerNo = await nextPlayerNo();
+
   const player = await Player.create({
+    playerNo,
     name: data.name,
     phone: data.phone,
     playerType: data.playerType,
@@ -60,11 +80,11 @@ async function createPlayer(data) {
     tshirtSize: data.tshirtSize || 'M',
     address: data.address || '',
     photo: data.photo || '',
-    basePrice: data.basePrice,
+    basePrice: data.basePrice || settings.getRoundConfig(settings.currentRound).basePrice,
     status: data.status || 'Available',
     auctionRound: settings.currentRound,
   });
-  emitAuctionEvent('players:updated', { message: `Player ${player.name} added` });
+  emitAuctionEvent('players:updated', { message: `Player #${player.playerNo} ${player.name} added` });
   return player;
 }
 
@@ -85,14 +105,14 @@ async function updatePlayer(id, data) {
     player.status = data.status;
   }
 
-  if (data.basePrice !== undefined && data.basePrice !== player.basePrice) {
-    if (live) throw ApiError.badRequest('Base price cannot be changed during a live auction.');
-    const settings = await Settings.get();
-    if (data.basePrice < settings.minBid) {
-      throw ApiError.badRequest(`Base price must be at least the minimum bid (${formatINR(settings.minBid)}).`);
-    }
-    player.basePrice = data.basePrice;
+  if (data.playerNo !== undefined && Number(data.playerNo) !== player.playerNo) {
+    const n = Number(data.playerNo);
+    if (!n) throw ApiError.badRequest('Player number is required.');
+    await assertPlayerNoFree(n, player._id);
+    player.playerNo = n;
   }
+
+  if (data.basePrice !== undefined) player.basePrice = data.basePrice;
 
   ['name', 'phone', 'playerType', 'battingStyle', 'bowlingStyle', 'tshirtSize', 'address', 'photo'].forEach((f) => {
     if (data[f] !== undefined) player[f] = data[f];
@@ -119,4 +139,4 @@ async function deletePlayer(id) {
   return player;
 }
 
-module.exports = { listPlayers, getPlayer, createPlayer, updatePlayer, deletePlayer };
+module.exports = { listPlayers, getPlayer, createPlayer, updatePlayer, deletePlayer, nextPlayerNo };

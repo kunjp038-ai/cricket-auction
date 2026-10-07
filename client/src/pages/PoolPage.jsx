@@ -9,7 +9,7 @@ import { auctionApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr, fmtDate } from '../utils/format.js';
+import { fmtDate } from '../utils/format.js';
 
 /**
  * Unsold players (candidates for the next round), the current auction pool,
@@ -54,16 +54,16 @@ export default function PoolPage() {
       <table>
         <thead>
           <tr>
-            <th>Player</th><th>Type</th><th className="num">Base Price</th><th>Status</th>
+            <th>No.</th><th>Player</th><th>Type</th><th>Status</th>
             {showPrev && <th>Previous</th>}<th>Round</th><th className="text-right">Action</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((p) => (
             <tr key={p._id}>
+              <td><span className="player-no sm">#{p.playerNo ?? '-'}</span></td>
               <td><div className="flex row-click" onClick={() => navigate(`/players/${p._id}`)}><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong></div></td>
               <td>{p.playerType}</td>
-              <td className="num">{inr(p.basePrice)}</td>
               <td><Badge status={p.status} /></td>
               {showPrev && <td className="small muted">{p.releaseCount > 0 ? `Released ${p.releaseCount}× · ${fmtDate(p.lastReleasedAt)}` : 'Unsold in round ' + p.auctionRound}{p.currentTeam ? ` · now ${p.currentTeam.name}` : ''}</td>}
               <td>{p.auctionRound}</td>

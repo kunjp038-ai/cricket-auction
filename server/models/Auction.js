@@ -20,6 +20,9 @@ const auctionSchema = new mongoose.Schema(
     winningTeam: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null, index: true },
     // Team that owned the player before a release (used for the "allow previous team to re-bid" rule).
     previousTeam: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
+    // Per-player countdown configured for the round (0 = no timer).
+    timerSeconds: { type: Number, default: 0 },
+    timerEndsAt: { type: Date, default: null },
     startedAt: { type: Date, default: Date.now },
     completedAt: { type: Date, default: null },
     // Set when the winning team later releases the player. The SOLD record itself is preserved.

@@ -43,7 +43,7 @@ export default function PlayerDetailPage() {
   return (
     <>
       <PageHeader
-        title={player.name}
+        title={`#${player.playerNo ?? '-'} ${player.name}`}
         subtitle={`${player.playerType} · ${player.battingStyle} · ${player.bowlingStyle}`}
         actions={
           <>
@@ -59,7 +59,6 @@ export default function PlayerDetailPage() {
           <Avatar src={player.photo} name={player.name} size="xl" />
           <div className="stack gap-sm">
             <Badge status={player.status} />
-            <div><span className="muted small">Base Price</span><br /><strong>{inr(player.basePrice)}</strong></div>
             <div><span className="muted small">T-Shirt</span><br /><strong>{player.tshirtSize}</strong></div>
             <div><span className="muted small">Phone</span><br /><strong>{player.phone}</strong></div>
           </div>

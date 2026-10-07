@@ -15,6 +15,17 @@ export default function SettingsPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
+  const setRound = (i, k, v) => setForm((f) => {
+    const rc = f.roundConfigs.map((r, idx) => (idx === i ? { ...r, [k]: v } : r));
+    return { ...f, roundConfigs: rc };
+  });
+  const addRound = () => setForm((f) => {
+    const next = (f.roundConfigs.reduce((m, r) => Math.max(m, Number(r.round) || 0), 0)) + 1;
+    const last = f.roundConfigs[f.roundConfigs.length - 1];
+    return { ...f, roundConfigs: [...f.roundConfigs, { round: next, basePrice: last ? last.basePrice : f.defaultBasePrice, timerSeconds: last ? last.timerSeconds : f.defaultTimerSeconds }] };
+  });
+  const removeRound = (i) => setForm((f) => ({ ...f, roundConfigs: f.roundConfigs.filter((_, idx) => idx !== i) }));
+
   const save = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -22,10 +33,12 @@ export default function SettingsPage() {
       const r = await settingsApi.update({
         auctionName: form.auctionName,
         bidIncrement: Number(form.bidIncrement),
-        minBid: Number(form.minBid),
         maxBid: Number(form.maxBid),
         defaultBasePrice: Number(form.defaultBasePrice),
+        defaultTimerSeconds: Number(form.defaultTimerSeconds),
         allowPreviousTeamRebid: Boolean(form.allowPreviousTeamRebid),
+        autoNextPlayer: Boolean(form.autoNextPlayer),
+        roundConfigs: form.roundConfigs.map((rc) => ({ round: Number(rc.round), basePrice: Number(rc.basePrice), timerSeconds: Number(rc.timerSeconds) })),
       });
       setForm(r.settings);
       toast.success(r.message);
@@ -38,42 +51,61 @@ export default function SettingsPage() {
   };
 
   if (!form) return <Spinner full />;
-  const base = Number(form.defaultBasePrice) || 0;
-  const inc = Number(form.bidIncrement) || 0;
 
   return (
     <>
-      <PageHeader title="Bid Rules & Settings" subtitle="Configure how bidding works during the live auction" />
+      <PageHeader title="Auction Settings" subtitle="Base price and timer per round, auction behaviour, admin password" />
       <div className="grid grid-2">
         <form className="card" onSubmit={save}>
-          <h2>Auction rules</h2>
+          <h2>Rounds: base price &amp; timer</h2>
+          <p className="small muted" style={{ marginTop: 0 }}>Every player in a round is auctioned at the same base price with the same countdown. Current round: <strong>{form.currentRound}</strong>.</p>
+          <div className="table-wrap rounds-table" style={{ boxShadow: 'none' }}>
+            <table>
+              <thead><tr><th>Round</th><th>Base price (₹)</th><th>Timer (seconds)</th><th /></tr></thead>
+              <tbody>
+                {form.roundConfigs.map((rc, i) => (
+                  <tr key={i} style={Number(rc.round) === form.currentRound ? { background: 'rgba(34,197,94,.08)' } : undefined}>
+                    <td><input type="number" min="1" value={rc.round} onChange={(e) => setRound(i, 'round', e.target.value)} required /></td>
+                    <td><input type="number" min="0" step="100" value={rc.basePrice} onChange={(e) => setRound(i, 'basePrice', e.target.value)} required /></td>
+                    <td><input type="number" min="0" max="3600" step="5" value={rc.timerSeconds} onChange={(e) => setRound(i, 'timerSeconds', e.target.value)} /></td>
+                    <td className="text-right"><button type="button" className="btn btn-ghost btn-sm" onClick={() => removeRound(i)}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm mt" onClick={addRound}>➕ Add round</button>
+
+          <h2 className="mt">Fallback for rounds not listed</h2>
+          <div className="form-grid">
+            <div className="field"><label>Base price (₹)</label><input type="number" min="0" step="100" value={form.defaultBasePrice} onChange={set('defaultBasePrice')} /></div>
+            <div className="field"><label>Timer (seconds, 0 = off)</label><input type="number" min="0" max="3600" step="5" value={form.defaultTimerSeconds} onChange={set('defaultTimerSeconds')} /></div>
+          </div>
+
+          <h2 className="mt">Auction behaviour</h2>
           <div className="form-grid">
             <div className="field full"><label>Auction Name</label><input value={form.auctionName} onChange={set('auctionName')} /></div>
-            <div className="field"><label>Default Base Price (₹)</label><input type="number" min="0" step="100" value={form.defaultBasePrice} onChange={set('defaultBasePrice')} /><span className="help">Pre-filled when adding a player.</span></div>
-            <div className="field"><label>Bid Increment (₹)</label><input type="number" min="1" step="100" value={form.bidIncrement} onChange={set('bidIncrement')} required /><span className="help">Each bid adds this to the current bid. First bid = base price.</span></div>
-            <div className="field"><label>Minimum Bid / Base Price (₹)</label><input type="number" min="0" step="100" value={form.minBid} onChange={set('minBid')} /><span className="help">Players cannot be created with a base price below this.</span></div>
-            <div className="field"><label>Maximum Bid (₹)</label><input type="number" min="0" step="100" value={form.maxBid} onChange={set('maxBid')} /><span className="help">0 = no limit. Bids above this are rejected.</span></div>
+            <div className="field"><label>Price step for −/+ buttons (₹)</label><input type="number" min="1" step="100" value={form.bidIncrement} onChange={set('bidIncrement')} required /></div>
+            <div className="field"><label>Maximum sold price (₹)</label><input type="number" min="0" step="100" value={form.maxBid} onChange={set('maxBid')} /><span className="help">0 = no limit.</span></div>
             <div className="field full">
-              <label className="toggle"><input type="checkbox" checked={!!form.allowPreviousTeamRebid} onChange={set('allowPreviousTeamRebid')} /> Allow previous team to re-bid for a released player</label>
-              <span className="help">When off, the team that released a player cannot bid for them in the re-auction.</span>
+              <label className="toggle"><input type="checkbox" checked={!!form.autoNextPlayer} onChange={set('autoNextPlayer')} /> Auto next player: after SOLD / UNSOLD the next player (by number) comes up automatically</label>
             </div>
-            <div className="field full"><label>Current Round</label><input value={form.currentRound} disabled /><span className="help">Advances automatically when you start a re-auction round.</span></div>
+            <div className="field full">
+              <label className="toggle"><input type="checkbox" checked={!!form.allowPreviousTeamRebid} onChange={set('allowPreviousTeamRebid')} /> Allow the previous team to buy back a released player</label>
+            </div>
           </div>
-          <div className="modal-actions"><button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save rules'}</button></div>
+          <div className="modal-actions"><button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save settings'}</button></div>
         </form>
 
         <div className="stack">
           <div className="card">
-            <h2>Bid ladder preview</h2>
-            <p className="small muted">Example for a player with base price {inr(base)}:</p>
-            <ul className="bid-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {Array.from({ length: 6 }).map((_, i) => {
-                const amt = base + i * inc;
-                const overMax = Number(form.maxBid) > 0 && amt > Number(form.maxBid);
-                return <li key={i} style={{ color: overMax ? '#fca5a5' : undefined }}><span>Bid {i + 1}{i === 0 ? ' (base)' : ''}</span><span className="mono">{inr(amt)}{overMax ? ' ✕ over max' : ''}</span></li>;
-              })}
-            </ul>
-            <p className="small muted">A team can only bid if the next amount ≤ its remaining budget, otherwise it sees “Insufficient budget for this bid.”</p>
+            <h2>How a round works</h2>
+            <ol className="muted" style={{ paddingLeft: '1.2rem', margin: 0 }}>
+              <li>Players are called in <strong>player-number order</strong> (#1, #2, #3 …).</li>
+              <li>Each player starts at the round's base price{form.roundConfigs[0] ? ` (Round ${form.roundConfigs[0].round}: ${inr(form.roundConfigs[0].basePrice)})` : ''} and the countdown starts.</li>
+              <li>Teams bid out loud. When bidding ends, select the winning team, enter the final price and press <strong>SOLD</strong>, or press <strong>UNSOLD</strong>.</li>
+              <li>The next player appears automatically. When the round is finished, start the re-auction round: unsold players come back at that round's base price.</li>
+            </ol>
           </div>
           <form className="card" onSubmit={changePw}>
             <h2>Change admin password</h2>

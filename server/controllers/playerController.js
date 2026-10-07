@@ -3,7 +3,7 @@ const playerService = require('../services/playerService');
 const auctionService = require('../services/auctionService');
 const { PLAYER_TYPES, BATTING_STYLES, BOWLING_STYLES, TSHIRT_SIZES, PLAYER_STATUS } = require('../models/Player');
 
-exports.meta = (req, res) => {
+exports.meta = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     playerTypes: PLAYER_TYPES,
@@ -11,8 +11,9 @@ exports.meta = (req, res) => {
     bowlingStyles: BOWLING_STYLES,
     tshirtSizes: TSHIRT_SIZES,
     statuses: PLAYER_STATUS,
+    nextPlayerNo: await playerService.nextPlayerNo(),
   });
-};
+});
 
 exports.list = asyncHandler(async (req, res) => {
   const result = await playerService.listPlayers(req.query);

@@ -24,6 +24,7 @@ export const AUCTION_EVENTS = [
   'auction:sold',
   'auction:unsold',
   'auction:cancelled',
+  'auction:timer',
   'auction:pool-empty',
   'player:released',
   'round:started',
