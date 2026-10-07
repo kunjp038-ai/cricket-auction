@@ -18,6 +18,12 @@ exports.update = asyncHandler(async (req, res) => {
     if (req.body[f] !== undefined) settings[f] = req.body[f];
   });
 
+  if (req.body.sounds && typeof req.body.sounds === 'object') {
+    ['countdown', 'timeUp', 'sold', 'unsold', 'start'].forEach((k) => {
+      if (req.body.sounds[k] !== undefined) settings.sounds[k] = String(req.body.sounds[k] || '').trim();
+    });
+  }
+
   if (req.body.roundConfigs !== undefined) {
     const rounds = new Set();
     const cleaned = [];

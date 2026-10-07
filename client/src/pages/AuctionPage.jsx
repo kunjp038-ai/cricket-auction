@@ -8,7 +8,7 @@ import Spinner from '../components/Spinner.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
-import { playSold, playUnsold, playStart } from '../utils/sound.js';
+import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { useToast } from '../hooks/useToast.jsx';
@@ -39,12 +39,15 @@ export default function AuctionPage() {
   const { connected, polling } = useAuctionSocket(
     (event, payload) => {
       if (payload?.state) setState(payload.state);
-      if (event === 'auction:sold') playSold();
-      if (event === 'auction:unsold') playUnsold();
-      if (event === 'auction:started') playStart();
+      if (event === 'auction:sold') playEvent('sold');
+      if (event === 'auction:unsold') playEvent('unsold');
+      if (event === 'auction:started') playEvent('start');
     },
     { poll: true, interval: 2500 }
   );
+
+  // Music URLs from Settings.
+  useEffect(() => { if (state?.settings?.sounds) setCustomSoundUrls(state.settings.sounds); }, [state?.settings?.sounds]);
 
   // Reset the sale form whenever a new player comes on the block.
   const auctionId = state?.auction?._id;

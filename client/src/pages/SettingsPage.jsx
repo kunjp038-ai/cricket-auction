@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '../components/PageHeader.jsx';
 import Spinner from '../components/Spinner.jsx';
+import SoundSettings from '../components/SoundSettings.jsx';
 import { settingsApi, authApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { inr } from '../utils/format.js';
@@ -38,6 +39,7 @@ export default function SettingsPage() {
         defaultTimerSeconds: Number(form.defaultTimerSeconds),
         allowPreviousTeamRebid: Boolean(form.allowPreviousTeamRebid),
         autoNextPlayer: Boolean(form.autoNextPlayer),
+        sounds: form.sounds || {},
         roundConfigs: form.roundConfigs.map((rc) => ({ round: Number(rc.round), basePrice: Number(rc.basePrice), timerSeconds: Number(rc.timerSeconds) })),
       });
       setForm(r.settings);
@@ -98,6 +100,8 @@ export default function SettingsPage() {
         </form>
 
         <div className="stack">
+          <SoundSettings sounds={form.sounds || {}} onChange={(sounds) => setForm((f) => ({ ...f, sounds }))} />
+          <p className="small muted" style={{ margin: '-.4rem 0 0' }}>Music URLs are saved with the <strong>Save settings</strong> button on the left.</p>
           <div className="card">
             <h2>How a round works</h2>
             <ol className="muted" style={{ paddingLeft: '1.2rem', margin: 0 }}>

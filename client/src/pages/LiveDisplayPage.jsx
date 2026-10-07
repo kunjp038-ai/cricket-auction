@@ -5,7 +5,7 @@ import TeamCard from '../components/TeamCard.jsx';
 import Spinner from '../components/Spinner.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
-import { playSold, playUnsold, playStart } from '../utils/sound.js';
+import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { inr } from '../utils/format.js';
@@ -22,18 +22,19 @@ export default function LiveDisplayPage() {
   useEffect(() => { load(); }, [load]);
 
   const prevAuctionRef = useRef(null);
+  useEffect(() => { if (state?.settings?.sounds) setCustomSoundUrls(state.settings.sounds); }, [state?.settings?.sounds]);
 
   const { connected, polling } = useAuctionSocket(
     async (event, payload) => {
       if (payload?.state) setState(payload.state);
-      if (event === 'auction:started') playStart();
+      if (event === 'auction:started') playEvent('start');
       if (event === 'auction:sold') {
-        playSold();
+        playEvent('sold');
         setBanner({ type: 'sold', ...payload.sale });
         setTimeout(() => setBanner(null), 5000);
       }
       if (event === 'auction:unsold') {
-        playUnsold();
+        playEvent('unsold');
         setBanner({ type: 'unsold', player: payload.player?.name });
         setTimeout(() => setBanner(null), 3500);
       }
@@ -47,9 +48,9 @@ export default function LiveDisplayPage() {
             const h = await auctionApi.history({ limit: 1 });
             const last = h.items?.[0];
             if (last && last._id === prev.id) {
-              if (last.status === 'SOLD') { playSold(); setBanner({ type: 'sold', player: last.player?.name, team: last.winningTeam?.name, amount: last.finalBid }); }
-              else if (last.status === 'UNSOLD') { playUnsold(); setBanner({ type: 'unsold', player: last.player?.name }); }
-              if (now) playStart();
+              if (last.status === 'SOLD') { playEvent('sold'); setBanner({ type: 'sold', player: last.player?.name, team: last.winningTeam?.name, amount: last.finalBid }); }
+              else if (last.status === 'UNSOLD') { playEvent('unsold'); setBanner({ type: 'unsold', player: last.player?.name }); }
+              if (now) playEvent('start');
               setTimeout(() => setBanner(null), 4500);
             }
           } catch (e) { /* ignore */ }

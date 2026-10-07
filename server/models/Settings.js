@@ -29,6 +29,14 @@ const settingsSchema = new mongoose.Schema(
         { round: 2, basePrice: 1000, timerSeconds: 60 },
       ],
     },
+    // Optional music URLs per event (empty = built-in music on the client).
+    sounds: {
+      countdown: { type: String, default: '', trim: true },
+      timeUp: { type: String, default: '', trim: true },
+      sold: { type: String, default: '', trim: true },
+      unsold: { type: String, default: '', trim: true },
+      start: { type: String, default: '', trim: true },
+    },
     allowPreviousTeamRebid: { type: Boolean, default: true },
     // After SOLD / UNSOLD automatically put the next player (by number) on the block.
     autoNextPlayer: { type: Boolean, default: true },

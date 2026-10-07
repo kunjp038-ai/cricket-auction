@@ -61,6 +61,8 @@ const settingsBody = [
   body('allowPreviousTeamRebid').optional().isBoolean().toBoolean(),
   body('autoNextPlayer').optional().isBoolean().toBoolean(),
   body('auctionName').optional().trim().isLength({ max: 100 }),
+  body('sounds').optional().isObject().withMessage('sounds must be an object'),
+  body('sounds.*').optional({ values: 'falsy' }).isString().trim().isLength({ max: 1000 }).withMessage('Sound URL is too long'),
   body('roundConfigs').optional().isArray({ max: 50 }).withMessage('roundConfigs must be an array'),
   body('roundConfigs.*.round').isInt({ min: 1 }).withMessage('Round number must be 1 or more').toInt(),
   body('roundConfigs.*.basePrice').isFloat({ min: 0 }).withMessage('Round base price must be a positive number').toFloat(),
