@@ -1,56 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
-import { startCountdown, countdownTick, stopCountdown, playEvent } from '../utils/sound.js';
+import { startCountdown, countdownTick, stopCountdown, scheduleFinalAlert, cancelFinalAlert } from '../utils/sound.js';
 
 /**
  * Classic seconds countdown: a big number inside a ring that empties as time runs out.
- * `endsAt` / `serverTime` come from the server (serverTime corrects device clock drift).
- * Sound: clock tick-tock every second (or custom music), alarm bell at zero.
+ * `endsAt` / `serverTime` come from the server. The server/device clock offset is captured
+ * once per received state (not on every render) so the display runs smoothly between updates.
+ * Sound: optional clock tick while counting; the last 5 seconds (beep per second + bell at
+ * zero) are scheduled on the audio clock so they always fire on time.
  */
 export default function CountdownTimer({ endsAt, serverTime, totalSeconds = 0, big = false, label = 'SECONDS', sound = true }) {
   const [now, setNow] = useState(Date.now());
+  const offsetRef = useRef(0);
+  const lastServerTimeRef = useRef(null);
   const lastSecondRef = useRef(null);
   const endsAtRef = useRef(endsAt);
   const startedSoundRef = useRef(false);
+  const alertScheduledRef = useRef(false);
+
+  // Capture the clock offset when a NEW server timestamp arrives; ignore small network jitter.
+  if (serverTime && serverTime !== lastServerTimeRef.current) {
+    lastServerTimeRef.current = serverTime;
+    const fresh = Date.now() - new Date(serverTime).getTime();
+    if (offsetRef.current === 0 || Math.abs(fresh - offsetRef.current) > 1500) offsetRef.current = fresh;
+  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
-    return () => { clearInterval(id); stopCountdown(); };
+    return () => { clearInterval(id); stopCountdown(); cancelFinalAlert(); };
   }, []);
 
-  // A new deadline (new player or timer restart) resets the sound state.
+  // A new deadline (new player or timer restart) resets sound state and cancels scheduled alerts.
   useEffect(() => {
     if (endsAtRef.current !== endsAt) {
       endsAtRef.current = endsAt;
       lastSecondRef.current = null;
       startedSoundRef.current = false;
+      alertScheduledRef.current = false;
       stopCountdown();
+      cancelFinalAlert();
     }
   }, [endsAt]);
 
-  const offset = serverTime ? Date.now() - new Date(serverTime).getTime() : 0;
-  const remainingMs = endsAt ? new Date(endsAt).getTime() - (now - offset) : 0;
+  const remainingMs = endsAt ? new Date(endsAt).getTime() - (now - offsetRef.current) : 0;
   const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
   const total = Math.max(totalSeconds || 0, remaining, 1);
 
   useEffect(() => {
     if (!endsAt || !sound) return;
+    if (remainingMs <= 0) return;
+
+    // Last 5 seconds: schedule beeps + bell precisely, once per deadline.
+    if (remainingMs <= 5000 && !alertScheduledRef.current) {
+      alertScheduledRef.current = true;
+      scheduleFinalAlert(remainingMs);
+      return;
+    }
+
     const prev = lastSecondRef.current;
     if (prev === remaining) return;
     lastSecondRef.current = remaining;
-    if (remaining <= 0) {
-      if (prev !== null && prev > 0) { stopCountdown(); playEvent('timeUp'); }
-      return;
+    if (remaining > 5) {
+      if (!startedSoundRef.current) {
+        startedSoundRef.current = true;
+        startCountdown().then(() => countdownTick(remaining));
+      } else {
+        countdownTick(remaining);
+      }
     }
-    if (!startedSoundRef.current) {
-      startedSoundRef.current = true;
-      startCountdown().then(() => countdownTick(remaining));
-      return;
-    }
-    countdownTick(remaining);
-  }, [remaining, endsAt, sound]);
+  }, [remaining, remainingMs, endsAt, sound]);
 
   if (!endsAt) return null;
-  const over = remaining <= 0;
+  const over = remainingMs <= 0;
   const cls = over ? 'over' : remaining <= 5 ? 'danger' : remaining <= 10 ? 'warn' : '';
 
   // Ring geometry

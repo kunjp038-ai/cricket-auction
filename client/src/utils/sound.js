@@ -26,6 +26,9 @@ let customUrls = {};
 const objectUrls = {};
 const active = {};
 let synthCountdown = false;
+let collect = null; // when set, voice() pushes its oscillators here (for cancellable scheduling)
+let scheduledNodes = [];
+let scheduledTimeouts = [];
 
 /* ------------------------------------------------------------------ */
 /* Enable / volume / unlock                                            */
@@ -122,7 +125,7 @@ function stopFile(name) {
   const a = active[name];
   if (a) { a.pause(); a.currentTime = 0; delete active[name]; }
 }
-export function stopAll() { Object.keys(active).forEach(stopFile); synthCountdown = false; }
+export function stopAll() { Object.keys(active).forEach(stopFile); synthCountdown = false; cancelFinalAlert(); }
 
 /* ------------------------------------------------------------------ */
 /* Built-in music (Web Audio synthesis)                                */
@@ -154,6 +157,7 @@ function voice({ freq, when = 0, dur = 0.3, type = 'sine', gain = 0.2, attack = 
   node.connect(amp).connect(ctx.destination);
   osc.start(t0);
   osc.stop(t0 + dur + 0.05);
+  if (collect) collect.push(osc);
 }
 const pluck = (freq, when, dur = 0.35, gain = 0.22) => {
   voice({ freq, when, dur, type: 'triangle', gain, attack: 0.005 });
@@ -271,6 +275,52 @@ export function countdownTick(remaining) {
 export function stopCountdown() {
   stopFile('countdown');
   synthCountdown = false;
+}
+
+/** Loud, clear alert beep used for the last 5 seconds. */
+function alertBeep(when, last = false) {
+  const f = last ? 1568 : 1046.5;
+  voice({ freq: f, when, dur: last ? 0.35 : 0.16, type: 'sine', gain: 0.55, attack: 0.005 });
+  voice({ freq: f * 2, when, dur: last ? 0.25 : 0.12, type: 'sine', gain: 0.18, attack: 0.005 });
+  voice({ freq: f / 2, when, dur: 0.1, type: 'square', gain: 0.08, attack: 0.005 });
+}
+
+/**
+ * Schedules the last-5-seconds alert on the audio clock, independent of screen updates:
+ * one beep per remaining second (5,4,3,2,1) and the "time up" sound exactly at zero.
+ * `remainingMs` is the time left right now. Cancel with cancelFinalAlert() on a timer restart.
+ */
+export async function scheduleFinalAlert(remainingMs) {
+  cancelFinalAlert();
+  if (!enabled) return false;
+  unlockAudio();
+  if (!ready()) return false;
+  collect = scheduledNodes;
+  const secs = Math.floor(remainingMs / 1000);
+  const beepTimes = new Set();
+  for (let k = Math.min(secs, 5); k >= 1; k--) beepTimes.add(Math.max(0, Math.round(remainingMs - k * 1000)));
+  if (Math.ceil(remainingMs / 1000) <= 5) beepTimes.add(0);
+  const sorted = [...beepTimes].sort((a, b) => a - b);
+  sorted.forEach((ms, i) => alertBeep(ms / 1000, i === sorted.length - 1));
+  const hasFile = await resolveSource('timeUp');
+  if (hasFile) {
+    scheduledTimeouts.push(setTimeout(() => { stopCountdown(); playFile('timeUp'); }, Math.max(0, remainingMs)));
+  } else {
+    collect = scheduledNodes;
+    const at = Math.max(0, remainingMs) / 1000;
+    for (let i = 0; i < 14; i++) { bell(1760, at + i * 0.18, 0.35, 0.22); bell(2349, at + i * 0.18 + 0.09, 0.3, 0.14); }
+    voice({ freq: 110, when: at, dur: 2.6, type: 'triangle', gain: 0.12, attack: 0.05 });
+    scheduledTimeouts.push(setTimeout(stopCountdown, Math.max(0, remainingMs)));
+  }
+  collect = null;
+  return true;
+}
+export function cancelFinalAlert() {
+  scheduledNodes.forEach((o) => { try { o.stop(0); } catch (e) { /* already stopped */ } });
+  scheduledNodes = [];
+  scheduledTimeouts.forEach(clearTimeout);
+  scheduledTimeouts = [];
+  collect = null;
 }
 
 /** Settings page preview: plays the given URL, a device file, or the built-in music. */
