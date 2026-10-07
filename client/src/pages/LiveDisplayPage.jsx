@@ -53,7 +53,7 @@ export default function LiveDisplayPage() {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats, nextBidAmount, bids } = state;
+  const { auction, teams, settings, stats, nextBidAmount } = state;
   const player = auction?.player;
   const highestId = auction?.highestBidder?._id;
 
@@ -94,11 +94,6 @@ export default function LiveDisplayPage() {
             <div className="current">{auction.bidCount > 0 ? inr(auction.currentBid) : '—'}</div>
             <div className="bidder" style={{ fontSize: '1.6rem' }}>{auction.highestBidder ? `🏆 ${auction.highestBidder.name}` : 'Waiting for the first bid'}</div>
             <div className="next">Next bid {inr(nextBidAmount)}</div>
-            {bids.length > 0 && (
-              <ul className="bid-list" style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left', maxHeight: 150 }}>
-                {bids.slice(0, 6).map((b) => <li key={b._id}><span>{b.team?.name}</span><span className="mono">{inr(b.amount)}</span></li>)}
-              </ul>
-            )}
           </div>
         </div>
       ) : (

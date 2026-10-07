@@ -61,7 +61,7 @@ export default function AuctionPage() {
   };
 
   if (!state) return <Spinner full />;
-  const { auction, bids, teams, settings, stats, nextBidAmount } = state;
+  const { auction, teams, settings, stats, nextBidAmount } = state;
   const player = auction?.player;
   const highestId = auction?.highestBidder?._id;
 
@@ -125,7 +125,6 @@ export default function AuctionPage() {
                 </div>
                 <div className="flex flex-wrap" style={{ gap: '1.5rem' }}>
                   <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.3rem' }}>{inr(auction.basePrice)}</strong></div>
-                  <div><div className="small muted">Bids</div><strong style={{ fontSize: '1.3rem' }}>{auction.bidCount}</strong></div>
                   <div><div className="small muted">Started</div><strong style={{ fontSize: '1.3rem' }}>{fmtTime(auction.startedAt)}</strong></div>
                 </div>
               </div>
@@ -136,11 +135,6 @@ export default function AuctionPage() {
               <div className="current">{auction.bidCount > 0 ? inr(auction.currentBid) : '—'}</div>
               <div className="bidder">{auction.highestBidder ? `🏆 ${auction.highestBidder.name}` : 'No bids yet'}</div>
               <div className="next">Next bid: <strong>{inr(nextBidAmount)}</strong>{settings.maxBid > 0 && ` · max ${inr(settings.maxBid)}`}</div>
-              {bids.length > 0 && (
-                <ul className="bid-list" style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left' }}>
-                  {bids.map((b) => <li key={b._id}><span><span className="color-dot" style={{ background: b.team?.color, marginRight: 6 }} />{b.team?.name || b.bidderName}</span><span className="mono">{inr(b.amount)} <span className="small muted">{fmtTime(b.createdAt)}</span></span></li>)}
-                </ul>
-              )}
             </div>
           </div>
 
