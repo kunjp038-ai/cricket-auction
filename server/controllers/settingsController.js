@@ -12,7 +12,7 @@ exports.update = asyncHandler(async (req, res) => {
   const settings = await Settings.get();
   const fields = [
     'auctionName', 'bidIncrement', 'minBid', 'maxBid', 'defaultBasePrice', 'defaultTimerSeconds',
-    'allowPreviousTeamRebid', 'autoNextPlayer',
+    'allowPreviousTeamRebid', 'autoNextPlayer', 'auctionOrder',
   ];
   fields.forEach((f) => {
     if (req.body[f] !== undefined) settings[f] = req.body[f];

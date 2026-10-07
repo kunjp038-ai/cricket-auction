@@ -60,6 +60,7 @@ const settingsBody = [
   body('defaultTimerSeconds').optional().isInt({ min: 0, max: 3600 }).withMessage('Timer must be 0-3600 seconds').toInt(),
   body('allowPreviousTeamRebid').optional().isBoolean().toBoolean(),
   body('autoNextPlayer').optional().isBoolean().toBoolean(),
+  body('auctionOrder').optional().isIn(['random', 'number']).withMessage('auctionOrder must be random or number'),
   body('auctionName').optional().trim().isLength({ max: 100 }),
   body('sounds').optional().isObject().withMessage('sounds must be an object'),
   body('sounds.*').optional({ values: 'falsy' }).isString().trim().isLength({ max: 1000 }).withMessage('Sound URL is too long'),

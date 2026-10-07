@@ -38,8 +38,10 @@ const settingsSchema = new mongoose.Schema(
       start: { type: String, default: '', trim: true },
     },
     allowPreviousTeamRebid: { type: Boolean, default: true },
-    // After SOLD / UNSOLD automatically put the next player (by number) on the block.
+    // After SOLD / UNSOLD automatically put the next player on the block.
     autoNextPlayer: { type: Boolean, default: true },
+    // 'random' picks any player left in the pool; 'number' goes #1, #2, #3 …
+    auctionOrder: { type: String, enum: ['random', 'number'], default: 'random' },
     currentRound: { type: Number, default: 1, min: 1 },
   },
   { timestamps: true }

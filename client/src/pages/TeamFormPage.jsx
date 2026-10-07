@@ -73,7 +73,7 @@ export default function TeamFormPage() {
           </div>
           <div className="field">
             <label>Total Budget (₹) <span className="req">*</span></label>
-            <input type="number" min={team?.usedBudget || 0} step="500" value={form.totalBudget} onChange={set('totalBudget')} required />
+            <input type="number" min={team?.usedBudget || 0} step="any" value={form.totalBudget} onChange={set('totalBudget')} required />
             {isEdit && <span className="help">Changing the budget records a BUDGET_ADJUSTMENT in the ledger. Cannot go below {inr(team.usedBudget)} already used.</span>}
           </div>
           <div className="field">

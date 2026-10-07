@@ -67,9 +67,18 @@ async function getCurrentState() {
   };
 }
 
-/** Next player in the pool, ordered by player number (then name for players without one). */
-function nextPoolPlayerQuery() {
-  return Player.findOne({ status: { $in: POOL_STATUSES } }).sort({ playerNo: 1, name: 1 });
+/**
+ * Picks the next player from the pool.
+ *  - 'random' (default): any remaining player, chosen at random
+ *  - 'number': lowest player number first
+ */
+async function pickNextPoolPlayer(settings) {
+  const filter = { status: { $in: POOL_STATUSES } };
+  if (settings && settings.auctionOrder === 'number') {
+    return Player.findOne(filter).sort({ playerNo: 1, name: 1 });
+  }
+  const [doc] = await Player.aggregate([{ $match: filter }, { $sample: { size: 1 } }, { $project: { _id: 1 } }]);
+  return doc ? Player.findById(doc._id) : null;
 }
 
 async function broadcast(event, extra = {}) {
@@ -96,7 +105,7 @@ async function startAuction({ playerId, adminId }) {
       throw ApiError.badRequest(`Player is "${player.status}" and cannot be auctioned right now.`);
     }
   } else {
-    player = await nextPoolPlayerQuery();
+    player = await pickNextPoolPlayer(settings);
     if (!player) throw ApiError.badRequest('No players left in the auction pool.');
   }
 
@@ -153,8 +162,8 @@ async function resetTimer({ auctionId, seconds }) {
 async function maybeAutoNext(adminId) {
   const settings = await Settings.get();
   if (!settings.autoNextPlayer) return null;
-  const next = await nextPoolPlayerQuery();
-  if (!next) return null;
+  const poolSize = await Player.countDocuments({ status: { $in: POOL_STATUSES } });
+  if (poolSize === 0) return null;
   try {
     return await startAuction({ adminId });
   } catch (err) {

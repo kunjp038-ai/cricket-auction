@@ -39,6 +39,7 @@ export default function SettingsPage() {
         defaultTimerSeconds: Number(form.defaultTimerSeconds),
         allowPreviousTeamRebid: Boolean(form.allowPreviousTeamRebid),
         autoNextPlayer: Boolean(form.autoNextPlayer),
+        auctionOrder: form.auctionOrder || 'random',
         sounds: form.sounds || {},
         roundConfigs: form.roundConfigs.map((rc) => ({ round: Number(rc.round), basePrice: Number(rc.basePrice), timerSeconds: Number(rc.timerSeconds) })),
       });
@@ -68,8 +69,8 @@ export default function SettingsPage() {
                 {form.roundConfigs.map((rc, i) => (
                   <tr key={i} style={Number(rc.round) === form.currentRound ? { background: 'rgba(34,197,94,.08)' } : undefined}>
                     <td><input type="number" min="1" value={rc.round} onChange={(e) => setRound(i, 'round', e.target.value)} required /></td>
-                    <td><input type="number" min="0" step="100" value={rc.basePrice} onChange={(e) => setRound(i, 'basePrice', e.target.value)} required /></td>
-                    <td><input type="number" min="0" max="3600" step="5" value={rc.timerSeconds} onChange={(e) => setRound(i, 'timerSeconds', e.target.value)} /></td>
+                    <td><input type="number" min="0" step="any" value={rc.basePrice} onChange={(e) => setRound(i, 'basePrice', e.target.value)} required /></td>
+                    <td><input type="number" min="0" max="3600" step="1" value={rc.timerSeconds} onChange={(e) => setRound(i, 'timerSeconds', e.target.value)} /></td>
                     <td className="text-right"><button type="button" className="btn btn-ghost btn-sm" onClick={() => removeRound(i)}>✕</button></td>
                   </tr>
                 ))}
@@ -80,17 +81,24 @@ export default function SettingsPage() {
 
           <h2 className="mt">Fallback for rounds not listed</h2>
           <div className="form-grid">
-            <div className="field"><label>Base price (₹)</label><input type="number" min="0" step="100" value={form.defaultBasePrice} onChange={set('defaultBasePrice')} /></div>
-            <div className="field"><label>Timer (seconds, 0 = off)</label><input type="number" min="0" max="3600" step="5" value={form.defaultTimerSeconds} onChange={set('defaultTimerSeconds')} /></div>
+            <div className="field"><label>Base price (₹)</label><input type="number" min="0" step="any" value={form.defaultBasePrice} onChange={set('defaultBasePrice')} /></div>
+            <div className="field"><label>Timer (seconds, 0 = off)</label><input type="number" min="0" max="3600" step="1" value={form.defaultTimerSeconds} onChange={set('defaultTimerSeconds')} /></div>
           </div>
 
           <h2 className="mt">Auction behaviour</h2>
           <div className="form-grid">
             <div className="field full"><label>Auction Name</label><input value={form.auctionName} onChange={set('auctionName')} /></div>
-            <div className="field"><label>Price step for −/+ buttons (₹)</label><input type="number" min="1" step="100" value={form.bidIncrement} onChange={set('bidIncrement')} required /></div>
-            <div className="field"><label>Maximum sold price (₹)</label><input type="number" min="0" step="100" value={form.maxBid} onChange={set('maxBid')} /><span className="help">0 = no limit.</span></div>
+            <div className="field"><label>Price step for −/+ buttons (₹)</label><input type="number" min="1" step="any" value={form.bidIncrement} onChange={set('bidIncrement')} required /><span className="help">Any amount, e.g. 500 or 1000.</span></div>
+            <div className="field"><label>Maximum sold price (₹)</label><input type="number" min="0" step="any" value={form.maxBid} onChange={set('maxBid')} /><span className="help">0 = no limit.</span></div>
             <div className="field full">
-              <label className="toggle"><input type="checkbox" checked={!!form.autoNextPlayer} onChange={set('autoNextPlayer')} /> Auto next player: after SOLD / UNSOLD the next player (by number) comes up automatically</label>
+              <label>Auction order</label>
+              <select value={form.auctionOrder || 'random'} onChange={set('auctionOrder')}>
+                <option value="random">Random: any remaining player (e.g. #7, #18, #1, #5 …)</option>
+                <option value="number">By number: #1, #2, #3 …</option>
+              </select>
+            </div>
+            <div className="field full">
+              <label className="toggle"><input type="checkbox" checked={!!form.autoNextPlayer} onChange={set('autoNextPlayer')} /> Auto next player: after SOLD / UNSOLD the next player comes up automatically</label>
             </div>
             <div className="field full">
               <label className="toggle"><input type="checkbox" checked={!!form.allowPreviousTeamRebid} onChange={set('allowPreviousTeamRebid')} /> Allow the previous team to buy back a released player</label>
@@ -105,7 +113,7 @@ export default function SettingsPage() {
           <div className="card">
             <h2>How a round works</h2>
             <ol className="muted" style={{ paddingLeft: '1.2rem', margin: 0 }}>
-              <li>Players are called in <strong>player-number order</strong> (#1, #2, #3 …).</li>
+              <li>Players are called in <strong>{(form.auctionOrder || 'random') === 'random' ? 'random order' : 'player-number order (#1, #2, #3 …)'}</strong>.</li>
               <li>Each player starts at the round's base price{form.roundConfigs[0] ? ` (Round ${form.roundConfigs[0].round}: ${inr(form.roundConfigs[0].basePrice)})` : ''} and the countdown starts.</li>
               <li>Teams bid out loud. When bidding ends, select the winning team, enter the final price and press <strong>SOLD</strong>, or press <strong>UNSOLD</strong>.</li>
               <li>The next player appears automatically. When the round is finished, start the re-auction round: unsold players come back at that round's base price.</li>

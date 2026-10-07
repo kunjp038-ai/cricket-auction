@@ -146,7 +146,7 @@ export default function AuctionPage() {
           <EmptyState icon="🔨" title="No player on the block">
             <p className="muted">{stats.playersRemaining > 0 ? `${stats.playersRemaining} players are waiting in the pool for Round ${stats.round} (base price ${inr(roundConfig.basePrice)}).` : 'The pool for this round is empty. Start a re-auction round to bring back unsold players.'}</p>
             <div className="flex flex-wrap" style={{ justifyContent: 'center' }}>
-              <button className="btn btn-primary btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={() => run('start', () => auctionApi.start())}>▶ Start Auction (next by number)</button>
+              <button className="btn btn-primary btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={() => run('start', () => auctionApi.start())}>▶ Start Auction ({settings.auctionOrder === 'number' ? 'next by number' : 'random player'})</button>
               <button className="btn btn-ghost btn-lg" disabled={busy || stats.playersRemaining === 0} onClick={openPicker}>Pick a specific player</button>
               {stats.playersRemaining === 0 && stats.totalUnsold > 0 && (
                 <button className="btn btn-accent btn-lg" disabled={busy} onClick={() => run('reauction', () => auctionApi.reauction(true), { confirmOpts: { title: 'Start re-auction round?', message: `Round ${stats.round} will close and ${stats.totalUnsold} unsold players move into Round ${stats.round + 1}.`, confirmText: 'Start next round', tone: 'accent' } })}>🔁 Start Re-Auction Round</button>
@@ -202,7 +202,7 @@ export default function AuctionPage() {
                 <label>Sold price (₹)</label>
                 <div className="flex">
                   <button type="button" className="btn btn-ghost" onClick={() => bump(Math.max(auction.basePrice, amt - step))}>−{step}</button>
-                  <input type="number" min={auction.basePrice} step={step} value={amount} onChange={(e) => onAmountTyped(e.target.value)} style={{ fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }} />
+                  <input type="number" min={auction.basePrice} step="any" value={amount} onChange={(e) => onAmountTyped(e.target.value)} style={{ fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }} />
                   <button type="button" className="btn btn-ghost" onClick={() => bump((amt || auction.basePrice) + step)}>+{step}</button>
                 </div>
                 {amountErr ? <span className="error-text">{amountErr}</span> : <span className="help">{selectedTeam ? `${selectedTeam.name} will have ${inr(selectedTeam.remainingBudget - amt)} left` : 'Select the team that won the bid'}</span>}
@@ -210,7 +210,7 @@ export default function AuctionPage() {
               <button className="btn btn-primary btn-lg btn-block" disabled={!!busy || !canSell} onClick={sell}>
                 {busy === 'sold' ? 'Saving…' : <>✅ SOLD {selectedTeam ? `→ ${selectedTeam.name} for ${inr(amt || 0)}` : ''}</>}
               </button>
-              {settings.autoNextPlayer && <span className="help text-center">Next player (#{'by number'}) comes up automatically after SOLD / UNSOLD.</span>}
+              {settings.autoNextPlayer && <span className="help text-center">Next player ({settings.auctionOrder === 'number' ? 'by number' : 'random'}) comes up automatically after SOLD / UNSOLD.</span>}
             </div>
           </div>
 
