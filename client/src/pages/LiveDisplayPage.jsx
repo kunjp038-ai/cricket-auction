@@ -53,9 +53,8 @@ export default function LiveDisplayPage() {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats, nextBidAmount } = state;
+  const { auction, teams, settings, stats } = state;
   const player = auction?.player;
-  const highestId = auction?.highestBidder?._id;
 
   return (
     <div className="live-page">
@@ -70,7 +69,7 @@ export default function LiveDisplayPage() {
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>
         <div className="card kpi tone-danger"><span className="label">Total Unsold</span><span className="value">{stats.totalUnsold}</span></div>
-        <div className="card kpi tone-warning"><span className="label">Increment</span><span className="value">{inr(settings.bidIncrement)}</span></div>
+        <div className="card kpi tone-warning"><span className="label">Teams</span><span className="value">{teams.length}</span></div>
       </div>
 
       {auction ? (
@@ -90,10 +89,10 @@ export default function LiveDisplayPage() {
             </div>
           </div>
           <div className="card bid-box">
-            <div className="muted" style={{ letterSpacing: 3 }}>CURRENT BID</div>
-            <div className="current">{auction.bidCount > 0 ? inr(auction.currentBid) : '—'}</div>
-            <div className="bidder" style={{ fontSize: '1.6rem' }}>{auction.highestBidder ? `🏆 ${auction.highestBidder.name}` : 'Waiting for the first bid'}</div>
-            <div className="next">Next bid {inr(nextBidAmount)}</div>
+            <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>
+            <div className="current">{inr(auction.basePrice)}</div>
+            <div className="bidder" style={{ fontSize: '1.4rem' }}>🔨 Bidding in progress…</div>
+            {settings.maxBid > 0 && <div className="next">Maximum bid {inr(settings.maxBid)}</div>}
           </div>
         </div>
       ) : (
@@ -105,7 +104,7 @@ export default function LiveDisplayPage() {
       )}
 
       <div className="team-bid-grid">
-        {teams.map((t) => <TeamCard key={t._id} team={t} highest={t._id === highestId} />)}
+        {teams.map((t) => <TeamCard key={t._id} team={t} />)}
       </div>
 
       {banner && (

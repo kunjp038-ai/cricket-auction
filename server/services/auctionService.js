@@ -206,13 +206,55 @@ async function placeBid({ auctionId, teamId, adminId }) {
 /* SOLD / UNSOLD / CANCEL                                              */
 /* ------------------------------------------------------------------ */
 
-async function markSold({ auctionId, adminId }) {
+/**
+ * Marks the live auction SOLD.
+ * Two modes:
+ *  - Direct entry (teams bid verbally, admin records the result): pass `teamId` + `amount`.
+ *    The final price is validated against base price, max bid, budget and the re-bid rule,
+ *    stored as a single Bid record and then the sale proceeds.
+ *  - Button bidding: omit teamId/amount and the current highest bidder wins at the current bid.
+ */
+async function markSold({ auctionId, adminId, teamId, amount }) {
   const result = await runInTransaction(async (session) => {
     const auction = await Auction.findById(auctionId).session(session);
     if (!auction) throw ApiError.notFound('Auction not found');
     if (auction.status !== 'LIVE') throw ApiError.badRequest('This auction is no longer live.');
+
+    if (teamId) {
+      const team = await Team.findById(teamId).session(session);
+      if (!team) throw ApiError.notFound('Team not found');
+      const amt = Number(amount);
+      if (!Number.isFinite(amt) || amt <= 0) throw ApiError.badRequest('Enter a valid sold price.');
+      if (amt < auction.basePrice) {
+        throw ApiError.badRequest(`Sold price cannot be lower than the base price (${formatINR(auction.basePrice)}).`);
+      }
+      const settings = await Settings.get(session);
+      if (settings.maxBid > 0 && amt > settings.maxBid) {
+        throw ApiError.badRequest(`Sold price ${formatINR(amt)} exceeds the maximum bid limit of ${formatINR(settings.maxBid)}.`);
+      }
+      if (auction.previousTeam && auction.previousTeam.equals(team._id) && !settings.allowPreviousTeamRebid) {
+        throw ApiError.badRequest(`${team.name} previously owned this player and re-bidding by the previous team is disabled.`);
+      }
+      if (team.players.length >= team.maxPlayers) {
+        throw ApiError.badRequest(`${team.name} has reached its maximum squad size (${team.maxPlayers} players).`);
+      }
+      if (amt > team.remainingBudget) {
+        throw ApiError.badRequest('Insufficient budget for this bid.', { required: amt, remaining: team.remainingBudget, team: team.name });
+      }
+      auction.currentBid = amt;
+      auction.highestBidder = team._id;
+      auction.bidCount += 1;
+      await Bid.create(
+        [{
+          auction: auction._id, player: auction.player, team: team._id, bidderName: team.name,
+          amount: amt, round: auction.round, placedBy: adminId || null,
+        }],
+        sessionOpts(session)
+      );
+    }
+
     if (!auction.highestBidder || auction.bidCount === 0) {
-      throw ApiError.badRequest('No bids have been placed. Mark the player UNSOLD instead.');
+      throw ApiError.badRequest('Select the winning team and enter the sold price, or mark the player UNSOLD.');
     }
 
     const [player, team] = await Promise.all([

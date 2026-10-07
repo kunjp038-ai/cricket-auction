@@ -2,7 +2,7 @@ const router = require('express').Router();
 const ctrl = require('../controllers/auctionController');
 const { protect } = require('../middleware/auth');
 const validate = require('../middleware/validate');
-const { objectId, bidBody } = require('../middleware/validators');
+const { objectId, bidBody, soldBody } = require('../middleware/validators');
 
 // Public read-only endpoints (used by the big-screen live display).
 router.get('/current', ctrl.current);
@@ -15,7 +15,7 @@ router.post('/start', ctrl.start);
 router.post('/next', ctrl.next);
 router.post('/reauction', ctrl.reauction);
 router.post('/:id/bid', objectId('id'), bidBody, validate, ctrl.bid);
-router.post('/:id/sold', objectId('id'), validate, ctrl.sold);
+router.post('/:id/sold', objectId('id'), soldBody, validate, ctrl.sold);
 router.post('/:id/unsold', objectId('id'), validate, ctrl.unsold);
 router.post('/:id/cancel', objectId('id'), validate, ctrl.cancel);
 router.post('/:id/next', objectId('id'), validate, ctrl.next);

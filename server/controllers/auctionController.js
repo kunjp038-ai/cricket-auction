@@ -18,7 +18,12 @@ exports.bid = asyncHandler(async (req, res) => {
 });
 
 exports.sold = asyncHandler(async (req, res) => {
-  const result = await auctionService.markSold({ auctionId: req.params.id, adminId: req.admin._id });
+  const result = await auctionService.markSold({
+    auctionId: req.params.id,
+    adminId: req.admin._id,
+    teamId: req.body.teamId,
+    amount: req.body.amount,
+  });
   res.json({
     success: true,
     message: `${result.player.name} SOLD to ${result.team.name} for ₹${result.finalBid.toLocaleString('en-IN')}`,

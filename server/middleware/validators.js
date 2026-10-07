@@ -67,4 +67,9 @@ const loginBody = [
 
 const bidBody = [body('teamId').isMongoId().withMessage('teamId is required')];
 
-module.exports = { objectId, playerBody, teamBody, captainBody, settingsBody, loginBody, bidBody };
+const soldBody = [
+  body('teamId').optional().isMongoId().withMessage('teamId must be a valid id'),
+  body('amount').optional().isFloat({ min: 0 }).withMessage('amount must be a positive number').toFloat(),
+];
+
+module.exports = { objectId, playerBody, teamBody, captainBody, settingsBody, loginBody, bidBody, soldBody };

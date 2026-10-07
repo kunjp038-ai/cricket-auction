@@ -356,7 +356,7 @@ Base URL: `http://localhost:5000/api`. All responses are JSON `{ success, ... }`
 | GET | `/auctions/current` | – | Full live state: `{ auction, bids, teams, settings, stats, nextBidAmount }` |
 | POST | `/auctions/start` | ✔ | `{ playerId? }` – start for a given player or the next in pool |
 | POST | `/auctions/:id/bid` | ✔ | `{ teamId }` – validates budget/increment/rules |
-| POST | `/auctions/:id/sold` | ✔ | Transactional sale to the highest bidder |
+| POST | `/auctions/:id/sold` | ✔ | `{ teamId, amount }` records the result of a verbal auction (validated against base price, max bid, budget, squad size, re-bid rule). Omit the body to sell to the current highest bidder from button bidding. Transactional. |
 | POST | `/auctions/:id/unsold` | ✔ | Mark unsold |
 | POST | `/auctions/:id/cancel` | ✔ | Return player to pool, no result |
 | POST | `/auctions/next` / `/auctions/:id/next` | ✔ | Auto‑unsold a bid‑less live player, start the next one |
@@ -397,8 +397,8 @@ curl -s -X POST http://localhost:5000/api/auctions/start -H "Authorization: Bear
 curl -s -X POST http://localhost:5000/api/auctions/<auctionId>/bid -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"teamId":"<teamId>"}'
 # → 400 {"success":false,"message":"Insufficient budget for this bid.","details":{"required":2500,"remaining":1000,"team":"Team A"}}
 
-# sold / unsold / next
-curl -s -X POST http://localhost:5000/api/auctions/<auctionId>/sold   -H "Authorization: Bearer $TOKEN"
+# sold (teams bid verbally; admin records winner + price) / unsold / next
+curl -s -X POST http://localhost:5000/api/auctions/<auctionId>/sold -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"teamId":"<teamId>","amount":7000}'
 curl -s -X POST http://localhost:5000/api/auctions/<auctionId>/unsold -H "Authorization: Bearer $TOKEN"
 curl -s -X POST http://localhost:5000/api/auctions/next -H "Authorization: Bearer $TOKEN"
 

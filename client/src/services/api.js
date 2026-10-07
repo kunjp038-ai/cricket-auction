@@ -79,7 +79,8 @@ export const auctionApi = {
   current: () => api.get('/auctions/current'),
   start: (playerId) => api.post('/auctions/start', playerId ? { playerId } : {}),
   bid: (auctionId, teamId) => api.post(`/auctions/${auctionId}/bid`, { teamId }),
-  sold: (auctionId) => api.post(`/auctions/${auctionId}/sold`),
+  // Pass { teamId, amount } to record a verbal auction result directly; omit to sell to the current highest bidder.
+  sold: (auctionId, data) => api.post(`/auctions/${auctionId}/sold`, data || {}),
   unsold: (auctionId) => api.post(`/auctions/${auctionId}/unsold`),
   cancel: (auctionId) => api.post(`/auctions/${auctionId}/cancel`),
   next: () => api.post('/auctions/next'),

@@ -13,9 +13,10 @@ import { useConfirm } from '../hooks/useConfirm.jsx';
 import { inr, fmtTime } from '../utils/format.js';
 
 /**
- * Admin live auction console. Every action is a REST call; the server broadcasts the new
- * state through Socket.IO so this screen, other admin tabs and the public /live screen all
- * update at the same instant.
+ * Admin live auction console.
+ * Teams call their bids out loud in the room. The admin only records the result:
+ * pick the winning team, enter the final price, press SOLD (or UNSOLD / NEXT).
+ * The server broadcasts the new state so the public /live screen updates instantly.
  */
 export default function AuctionPage() {
   const navigate = useNavigate();
@@ -25,21 +26,23 @@ export default function AuctionPage() {
   const [busy, setBusy] = useState('');
   const [pickOpen, setPickOpen] = useState(false);
   const [pool, setPool] = useState([]);
-  const [flashTeam, setFlashTeam] = useState(null);
+  const [teamId, setTeamId] = useState('');
+  const [amount, setAmount] = useState('');
 
   const load = useCallback(() => auctionApi.current().then(setState).catch((e) => toast.error(e.message)), [toast]);
   useEffect(() => { load(); }, [load]);
 
   const { connected, polling } = useAuctionSocket(
-    (event, payload) => {
-      if (payload?.state) setState(payload.state);
-      if (event === 'auction:bid' && payload.bid) {
-        setFlashTeam(payload.bid.teamId);
-        setTimeout(() => setFlashTeam(null), 700);
-      }
-    },
+    (event, payload) => { if (payload?.state) setState(payload.state); },
     { poll: true, interval: 2500 }
   );
+
+  // Reset the sale form whenever a new player comes on the block.
+  const auctionId = state?.auction?._id;
+  useEffect(() => {
+    setTeamId('');
+    setAmount(state?.auction ? String(state.auction.basePrice) : '');
+  }, [auctionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (key, fn, { confirmOpts } = {}) => {
     if (confirmOpts && !(await confirm(confirmOpts))) return;
@@ -61,19 +64,41 @@ export default function AuctionPage() {
   };
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats, nextBidAmount } = state;
+  const { auction, teams, settings, stats } = state;
   const player = auction?.player;
-  const highestId = auction?.highestBidder?._id;
+  const selectedTeam = teams.find((t) => t._id === teamId);
+  const amt = Number(amount);
 
-  const bidReason = (team) => {
-    if (!auction) return 'No live auction';
-    if (team._id === highestId) return 'Highest bidder';
+  const teamProblem = (team) => {
+    if (!auction) return null;
     if ((team.players?.length || 0) >= team.maxPlayers) return 'Squad full';
     if (auction.previousTeam && auction.previousTeam._id === team._id && !settings.allowPreviousTeamRebid) return 'Previous team (re-bid off)';
-    if (nextBidAmount > team.remainingBudget) return 'Insufficient budget';
-    if (settings.maxBid > 0 && nextBidAmount > settings.maxBid) return 'Max bid reached';
+    if (team.remainingBudget < auction.basePrice) return 'Cannot afford base price';
     return null;
   };
+
+  const amountProblem = () => {
+    if (!auction) return null;
+    if (!amount || !Number.isFinite(amt) || amt <= 0) return 'Enter the sold price';
+    if (amt < auction.basePrice) return `Minimum is the base price ${inr(auction.basePrice)}`;
+    if (settings.maxBid > 0 && amt > settings.maxBid) return `Maximum bid is ${inr(settings.maxBid)}`;
+    if (selectedTeam && amt > selectedTeam.remainingBudget) return `Insufficient budget: ${selectedTeam.name} has ${inr(selectedTeam.remainingBudget)} left`;
+    return null;
+  };
+  const amountErr = amountProblem();
+  const canSell = !!auction && !!selectedTeam && !teamProblem(selectedTeam) && !amountErr;
+
+  const sell = () =>
+    run('sold', () => auctionApi.sold(auction._id, { teamId, amount: amt }), {
+      confirmOpts: {
+        title: 'Confirm SOLD',
+        message: `${player.name} → ${selectedTeam.name} for ${inr(amt)}. The amount will be deducted from the team's budget now.`,
+        confirmText: 'SOLD!',
+        tone: 'primary',
+      },
+    });
+
+  const step = settings.bidIncrement || 500;
 
   return (
     <>
@@ -89,10 +114,9 @@ export default function AuctionPage() {
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>
         <div className="card kpi tone-danger"><span className="label">Total Unsold</span><span className="value">{stats.totalUnsold}</span></div>
-        <div className="card kpi tone-warning"><span className="label">Bid Increment</span><span className="value">{inr(settings.bidIncrement)}</span></div>
+        <div className="card kpi tone-warning"><span className="label">Teams</span><span className="value">{teams.length}</span></div>
       </div>
 
-      {/* Stage */}
       {!auction ? (
         <div className="card mb">
           <EmptyState icon="🔨" title="No player on the block">
@@ -109,11 +133,12 @@ export default function AuctionPage() {
       ) : (
         <>
           <div className="auction-stage">
+            {/* Player details */}
             <div className="card player-stage">
               <Avatar src={player.photo} name={player.name} size="xl" />
               <div className="grow">
                 <div className="flex gap-sm flex-wrap">
-                  <Badge status="LIVE">● LIVE</Badge>
+                  <Badge status="LIVE">● ON THE BLOCK</Badge>
                   {player.releaseCount > 0 && <Badge tone="warning">Re-Auction · previously {auction.previousTeam?.name || 'owned'}</Badge>}
                 </div>
                 <div className="name">{player.name}</div>
@@ -124,65 +149,71 @@ export default function AuctionPage() {
                   <span className="chip">👕 {player.tshirtSize}</span>
                 </div>
                 <div className="flex flex-wrap" style={{ gap: '1.5rem' }}>
-                  <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.3rem' }}>{inr(auction.basePrice)}</strong></div>
-                  <div><div className="small muted">Started</div><strong style={{ fontSize: '1.3rem' }}>{fmtTime(auction.startedAt)}</strong></div>
+                  <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.6rem', color: '#86efac' }}>{inr(auction.basePrice)}</strong></div>
+                  <div><div className="small muted">Phone</div><strong style={{ fontSize: '1.1rem' }}>{player.phone}</strong></div>
+                  <div><div className="small muted">Started</div><strong style={{ fontSize: '1.1rem' }}>{fmtTime(auction.startedAt)}</strong></div>
                 </div>
               </div>
             </div>
 
-            <div className="card bid-box">
-              <div className="small muted" style={{ letterSpacing: 2 }}>CURRENT BID</div>
-              <div className="current">{auction.bidCount > 0 ? inr(auction.currentBid) : '—'}</div>
-              <div className="bidder">{auction.highestBidder ? `🏆 ${auction.highestBidder.name}` : 'No bids yet'}</div>
-              <div className="next">Next bid: <strong>{inr(nextBidAmount)}</strong>{settings.maxBid > 0 && ` · max ${inr(settings.maxBid)}`}</div>
+            {/* Record the result */}
+            <div className="card bid-box" style={{ textAlign: 'left' }}>
+              <div className="small muted" style={{ letterSpacing: 2 }}>RECORD RESULT</div>
+              <div className="field">
+                <label>Winning team</label>
+                <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                  <option value="">— Select team —</option>
+                  {teams.map((t) => {
+                    const prob = teamProblem(t);
+                    return <option key={t._id} value={t._id} disabled={!!prob}>{t.name} · {inr(t.remainingBudget)} left{prob ? ` · ${prob}` : ''}</option>;
+                  })}
+                </select>
+              </div>
+              <div className="field">
+                <label>Sold price (₹)</label>
+                <div className="flex">
+                  <button type="button" className="btn btn-ghost" onClick={() => setAmount(String(Math.max(auction.basePrice, amt - step)))}>−{step}</button>
+                  <input type="number" min={auction.basePrice} step={step} value={amount} onChange={(e) => setAmount(e.target.value)} style={{ fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }} />
+                  <button type="button" className="btn btn-ghost" onClick={() => setAmount(String((amt || auction.basePrice) + step))}>+{step}</button>
+                </div>
+                {amountErr ? <span className="error-text">{amountErr}</span> : <span className="help">{selectedTeam ? `${selectedTeam.name} will have ${inr(selectedTeam.remainingBudget - amt)} left` : 'Select the team that won the bid'}</span>}
+              </div>
+              <button className="btn btn-primary btn-lg btn-block" disabled={!!busy || !canSell} onClick={sell}>
+                ✅ SOLD {selectedTeam ? `→ ${selectedTeam.name} for ${inr(amt || 0)}` : ''}
+              </button>
             </div>
           </div>
 
-          {/* Team bid buttons */}
-          <h2 style={{ marginBottom: '.6rem' }}>Teams</h2>
+          {/* Teams – click to select the winner */}
+          <h2 style={{ marginBottom: '.6rem' }}>Teams <span className="small muted">(click a team to select it as the winner)</span></h2>
           <div className="team-bid-grid">
             {teams.map((t) => {
-              const reason = bidReason(t);
+              const prob = teamProblem(t);
               return (
-                <div key={t._id} className={flashTeam === t._id ? 'flash' : ''} style={{ borderRadius: 14 }}>
-                  <TeamCard
-                    team={t}
-                    highest={t._id === highestId}
-                    onBid={() => run(`bid-${t._id}`, () => auctionApi.bid(auction._id, t._id))}
-                    bidDisabled={!!busy || !!reason}
-                    bidLabel={reason ? reason : `BID ${inr(nextBidAmount)}`}
-                  />
-                </div>
+                <TeamCard
+                  key={t._id}
+                  team={t}
+                  highest={t._id === teamId}
+                  onClick={() => !prob && setTeamId(t._id)}
+                  footer={prob ? <span className="badge badge-danger">{prob}</span> : null}
+                />
               );
             })}
           </div>
 
-          {/* Actions */}
-          <div className="action-bar">
-            <button
-              className="btn btn-primary btn-lg"
-              disabled={!!busy || !auction.highestBidder}
-              onClick={() => run('sold', () => auctionApi.sold(auction._id), { confirmOpts: { title: 'Confirm SOLD', message: `Sell ${player.name} to ${auction.highestBidder?.name} for ${inr(auction.currentBid)}? The amount is deducted from the team budget now.`, confirmText: 'SOLD!', tone: 'primary' } })}
-            >
-              ✅ SOLD {auction.highestBidder ? `→ ${auction.highestBidder.name}` : ''}
-            </button>
+          {/* Other actions */}
+          <div className="action-bar" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <button
               className="btn btn-danger btn-lg"
               disabled={!!busy}
-              onClick={() => run('unsold', () => auctionApi.unsold(auction._id), { confirmOpts: { title: 'Mark UNSOLD', message: `${player.name} will be marked UNSOLD${auction.bidCount > 0 ? ' even though there are bids' : ''}. The player can come back in a re-auction round.`, confirmText: 'UNSOLD', tone: 'danger' } })}
+              onClick={() => run('unsold', () => auctionApi.unsold(auction._id), { confirmOpts: { title: 'Mark UNSOLD', message: `${player.name} will be marked UNSOLD. The player can come back in a re-auction round.`, confirmText: 'UNSOLD', tone: 'danger' } })}
             >
               ❌ UNSOLD
             </button>
             <button
               className="btn btn-info btn-lg"
               disabled={!!busy}
-              onClick={() => {
-                if (auction.bidCount > 0) {
-                  toast.warning('This player has bids. Mark SOLD or UNSOLD before moving to the next player.');
-                  return;
-                }
-                run('next', () => auctionApi.next(), { confirmOpts: { title: 'Skip to next player?', message: `${player.name} has no bids and will be marked UNSOLD.`, confirmText: 'Next player', tone: 'info' } });
-              }}
+              onClick={() => run('next', () => auctionApi.next(), { confirmOpts: { title: 'Skip to next player?', message: `${player.name} will be marked UNSOLD and the next player comes up.`, confirmText: 'Next player', tone: 'info' } })}
             >
               ⏭ NEXT PLAYER
             </button>
