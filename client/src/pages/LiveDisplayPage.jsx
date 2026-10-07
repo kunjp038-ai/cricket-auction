@@ -105,7 +105,7 @@ export default function LiveDisplayPage() {
           </div>
           <div className="card bid-box">
             {auction.timerEndsAt ? (
-              <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} big />
+              <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} totalSeconds={auction.timerSeconds} big />
             ) : (
               <>
                 <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>

@@ -177,7 +177,7 @@ export default function AuctionPage() {
                   <div><div className="small muted">Base Price</div><strong style={{ fontSize: '1.8rem', color: '#86efac' }}>{inr(auction.basePrice)}</strong></div>
                   {auction.timerEndsAt && (
                     <div className="flex gap-sm">
-                      <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} />
+                      <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} totalSeconds={auction.timerSeconds} />
                       <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => run('timer', () => auctionApi.resetTimer(auction._id))} title="Restart timer (also restarts automatically on every price change)">↻ Restart</button>
                     </div>
                   )}

@@ -10,8 +10,8 @@
  * Browsers only allow sound after a user gesture, so `unlockAudio()` runs on the first click.
  */
 export const SOUND_EVENTS = [
-  { key: 'countdown', label: 'Countdown (last 10 seconds)', hint: 'A ~10 second clip. Starts when 10 seconds are left, stops at zero or when the timer restarts.' },
-  { key: 'timeUp', label: 'Time up', hint: 'Plays when the countdown reaches zero.' },
+  { key: 'countdown', label: 'Timer tick (while counting)', hint: 'Plays (looped) from the moment the timer starts until zero or a restart. Built-in: clock tick-tock every second.' },
+  { key: 'timeUp', label: 'Time up', hint: 'Plays when the countdown reaches zero. Built-in: alarm bell.' },
   { key: 'sold', label: 'SOLD', hint: 'Plays when a player is sold.' },
   { key: 'unsold', label: 'UNSOLD', hint: 'Plays when a player goes unsold.' },
   { key: 'start', label: 'Next player', hint: 'Plays when a new player comes on the block.' },
@@ -171,7 +171,46 @@ const bell = (freq, when, dur = 1.2, gain = 0.18) => {
   voice({ freq: freq * 5.4, when, dur: dur * 0.4, type: 'sine', gain: gain * 0.12, attack: 0.005 });
 };
 
-/** One step of the built-in countdown riff: rises in pitch and urgency as time runs out. */
+/** Short clock click: filtered noise burst + a tiny tonal body. */
+function click(when, { freq = 2200, gain = 0.5, dur = 0.045 } = {}) {
+  const t0 = now() + when;
+  const len = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'bandpass';
+  f.frequency.value = freq;
+  f.Q.value = 1.2;
+  const amp = ctx.createGain();
+  amp.gain.setValueAtTime(g(gain), t0);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(f).connect(amp).connect(ctx.destination);
+  src.start(t0);
+  voice({ freq: freq / 2.5, when, dur: 0.05, type: 'square', gain: gain * 0.12, attack: 0.002 });
+}
+
+/** Classic clock tick-tock: alternates each second, sharper and louder in the last 5 seconds. */
+function synthClockTick(remaining) {
+  const tock = remaining % 2 === 0;
+  const urgent = remaining <= 5;
+  click(0, { freq: tock ? 1500 : 2400, gain: urgent ? 0.9 : 0.6, dur: urgent ? 0.06 : 0.045 });
+  if (urgent) click(0.5, { freq: tock ? 2400 : 1500, gain: 0.45, dur: 0.04 });
+}
+
+/** Classic alarm bell: fast metallic rings for ~2.5 s. */
+function synthAlarmBell() {
+  for (let i = 0; i < 14; i++) {
+    const w = i * 0.18;
+    bell(1760, w, 0.35, 0.22);
+    bell(2349, w + 0.09, 0.3, 0.14);
+  }
+  voice({ freq: 110, when: 0, dur: 2.6, type: 'triangle', gain: 0.12, attack: 0.05 });
+}
+
+/** (legacy) rising riff – kept for reference, no longer the default */
 function synthCountdownStep(remaining) {
   const idx = Math.max(0, 10 - remaining); // 0 (10 s left) … 9 (1 s left)
   const scale = [261.6, 293.7, 329.6, 349.2, 392.0, 440.0, 493.9, 523.3, 587.3, 659.3];
@@ -204,7 +243,8 @@ function synthUnsold() {
 function synthStart() {
   bell(659.3, 0, 0.6, 0.16); bell(880, 0.12, 0.7, 0.16); bell(1318.5, 0.24, 1.0, 0.14);
 }
-const synth = { timeUp: synthTimeUp, sold: synthSold, unsold: synthUnsold, start: synthStart };
+const synth = { timeUp: synthAlarmBell, sold: synthSold, unsold: synthUnsold, start: synthStart };
+void synthTimeUp; void synthCountdownStep;
 
 /* ------------------------------------------------------------------ */
 /* Public API used by the screens                                      */
@@ -216,16 +256,17 @@ export async function playEvent(name) {
   if (!played && ready() && synth[name]) synth[name]();
 }
 
-/** Called when 10 seconds remain. */
+/** Called when a timer starts (or restarts). Custom music loops; otherwise the clock ticks. */
 export async function startCountdown() {
   if (!enabled) return;
-  const played = await playFile('countdown');
+  const played = await playFile('countdown', { loop: true });
   synthCountdown = !played;
 }
-/** Called every second while the countdown runs (remaining 10 … 1). */
+/** Called every second while the timer runs (remaining N … 1). */
 export function countdownTick(remaining) {
-  if (!enabled || !synthCountdown || !ready()) return;
-  synthCountdownStep(remaining);
+  if (!enabled || !ready()) return;
+  if (!synthCountdown) return; // custom music is playing
+  synthClockTick(remaining);
 }
 export function stopCountdown() {
   stopFile('countdown');
@@ -241,8 +282,8 @@ export async function previewSound(name, url) {
   if (!ready()) return 'blocked';
   if (name === 'countdown') {
     let r = 10;
-    const id = setInterval(() => { synthCountdownStep(r); r -= 1; if (r < 1) { clearInterval(id); setTimeout(synthTimeUp, 1000); } }, 1000);
-    synthCountdownStep(r); r -= 1;
+    const id = setInterval(() => { synthClockTick(r); r -= 1; if (r < 1) { clearInterval(id); setTimeout(synthAlarmBell, 1000); } }, 1000);
+    synthClockTick(r); r -= 1;
   } else if (synth[name]) synth[name]();
   return 'builtin';
 }
