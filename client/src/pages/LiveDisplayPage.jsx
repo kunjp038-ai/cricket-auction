@@ -4,6 +4,8 @@ import Badge from '../components/Badge.jsx';
 import TeamCard from '../components/TeamCard.jsx';
 import Spinner from '../components/Spinner.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
+import SoundToggle from '../components/SoundToggle.jsx';
+import { playSold, playUnsold, playStart } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { inr } from '../utils/format.js';
@@ -24,11 +26,14 @@ export default function LiveDisplayPage() {
   const { connected, polling } = useAuctionSocket(
     async (event, payload) => {
       if (payload?.state) setState(payload.state);
+      if (event === 'auction:started') playStart();
       if (event === 'auction:sold') {
+        playSold();
         setBanner({ type: 'sold', ...payload.sale });
         setTimeout(() => setBanner(null), 5000);
       }
       if (event === 'auction:unsold') {
+        playUnsold();
         setBanner({ type: 'unsold', player: payload.player?.name });
         setTimeout(() => setBanner(null), 3500);
       }
@@ -42,8 +47,9 @@ export default function LiveDisplayPage() {
             const h = await auctionApi.history({ limit: 1 });
             const last = h.items?.[0];
             if (last && last._id === prev.id) {
-              if (last.status === 'SOLD') setBanner({ type: 'sold', player: last.player?.name, team: last.winningTeam?.name, amount: last.finalBid });
-              else if (last.status === 'UNSOLD') setBanner({ type: 'unsold', player: last.player?.name });
+              if (last.status === 'SOLD') { playSold(); setBanner({ type: 'sold', player: last.player?.name, team: last.winningTeam?.name, amount: last.finalBid }); }
+              else if (last.status === 'UNSOLD') { playUnsold(); setBanner({ type: 'unsold', player: last.player?.name }); }
+              if (now) playStart();
               setTimeout(() => setBanner(null), 4500);
             }
           } catch (e) { /* ignore */ }
@@ -65,7 +71,10 @@ export default function LiveDisplayPage() {
             <div className="small muted" style={{ letterSpacing: 3 }}>{settings.auctionName.toUpperCase()}</div>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Round {stats.round}</h1>
           </div>
-          <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected || polling ? 'LIVE' : 'Reconnecting…'}</span>
+          <div className="stack gap-sm" style={{ alignItems: 'flex-end' }}>
+            <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected || polling ? 'LIVE' : 'Reconnecting…'}</span>
+            <SoundToggle />
+          </div>
         </div>
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>

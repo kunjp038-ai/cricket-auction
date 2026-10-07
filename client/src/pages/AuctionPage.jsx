@@ -7,6 +7,8 @@ import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
+import SoundToggle from '../components/SoundToggle.jsx';
+import { playSold, playUnsold, playStart } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { useToast } from '../hooks/useToast.jsx';
@@ -34,7 +36,12 @@ export default function AuctionPage() {
   useEffect(() => { load(); }, [load]);
 
   const { connected, polling } = useAuctionSocket(
-    (event, payload) => { if (payload?.state) setState(payload.state); },
+    (event, payload) => {
+      if (payload?.state) setState(payload.state);
+      if (event === 'auction:sold') playSold();
+      if (event === 'auction:unsold') playUnsold();
+      if (event === 'auction:started') playStart();
+    },
     { poll: true, interval: 2500 }
   );
 
@@ -104,7 +111,10 @@ export default function AuctionPage() {
             <h1 style={{ margin: 0 }}>Round {stats.round}</h1>
             <div className="small muted">Base {inr(roundConfig.basePrice)} · Timer {roundConfig.timerSeconds ? `${roundConfig.timerSeconds}s` : 'off'}</div>
           </div>
-          <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected ? 'Realtime on' : polling ? 'Live (polling)' : 'Reconnecting…'}</span>
+          <div className="stack gap-sm" style={{ alignItems: 'flex-end' }}>
+            <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected ? 'Realtime on' : polling ? 'Live (polling)' : 'Reconnecting…'}</span>
+            <SoundToggle />
+          </div>
         </div>
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>
