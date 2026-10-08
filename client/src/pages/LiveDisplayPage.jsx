@@ -21,6 +21,22 @@ export default function LiveDisplayPage() {
   useEffect(() => { load(); }, [load]);
 
   const prevAuctionRef = useRef(null);
+  const lastReleaseRef = useRef(undefined);
+
+  // Show a RELEASED banner whenever a new release appears (works with sockets and polling).
+  const latestRelease = state?.recentReleases?.[0];
+  useEffect(() => {
+    if (!state) return;
+    const id = latestRelease?.id || null;
+    if (lastReleaseRef.current === undefined) { lastReleaseRef.current = id; return; }
+    if (id && id !== lastReleaseRef.current) {
+      lastReleaseRef.current = id;
+      playEvent('unsold');
+      setBanner({ type: 'released', player: latestRelease.player?.name, playerNo: latestRelease.player?.playerNo, photo: latestRelease.player?.photo, team: latestRelease.team?.name });
+      setTimeout(() => setBanner(null), 6000);
+    }
+  }, [latestRelease?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { if (state?.settings?.sounds) setCustomSoundUrls(state.settings.sounds); }, [state?.settings?.sounds]);
 
   const { connected, polling } = useAuctionSocket(
@@ -60,7 +76,7 @@ export default function LiveDisplayPage() {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, settings, stats, roundConfig, serverTime, bids = [] } = state;
+  const { auction, settings, stats, roundConfig, serverTime, bids = [], recentReleases = [] } = state;
   const hasBids = !!auction && auction.bidCount > 0;
   const player = auction?.player;
 
@@ -91,7 +107,7 @@ export default function LiveDisplayPage() {
               <div className="flex gap-sm flex-wrap" style={{ marginBottom: '.5rem' }}>
                 <span className="player-no" style={{ fontSize: '2.2rem' }}>#{player.playerNo ?? '-'}</span>
                 <Badge status="LIVE">● ON THE BLOCK</Badge>
-                {player.releaseCount > 0 && <Badge tone="warning">Re-Auction</Badge>}
+                {player.releaseCount > 0 && <Badge tone="warning">Re-Auction{auction.previousTeam?.name ? ` · released by ${auction.previousTeam.name}` : ''}</Badge>}
               </div>
               <div className="name">{player.name}</div>
               <div className="meta">
@@ -133,12 +149,32 @@ export default function LiveDisplayPage() {
         </div>
       )}
 
+      {recentReleases.length > 0 && (
+        <div className="card">
+          <div className="small muted" style={{ letterSpacing: 2, marginBottom: '.6rem' }}>♻️ RECENTLY RELEASED PLAYERS</div>
+          <div className="release-strip">
+            {recentReleases.map((r) => (
+              <div key={r.id} className="item">
+                <Avatar src={r.player.photo} name={r.player.name} size="sm" />
+                <div>
+                  <strong>#{r.player.playerNo ?? '-'} {r.player.name}</strong>
+                  <div className="small muted">Released by {r.team?.name || 'team'}{r.player.status === 'Sold' ? ' · re-sold' : ' · back in auction'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {banner && (
         <div className="sold-banner" onClick={() => setBanner(null)}>
           <div className={`inner ${banner.type}`}>
-            <div className="stamp">{banner.type === 'sold' ? 'SOLD!' : 'UNSOLD'}</div>
-            <h2 style={{ fontSize: '2rem' }}>{banner.player}</h2>
+            <div className="stamp">{banner.type === 'sold' ? 'SOLD!' : banner.type === 'released' ? 'RELEASED' : 'UNSOLD'}</div>
+            {banner.type === 'released' && banner.photo && <div style={{ display: 'flex', justifyContent: 'center', margin: '.6rem 0' }}><Avatar src={banner.photo} name={banner.player} size="xl" square /></div>}
+            <h2 style={{ fontSize: '2rem' }}>{banner.type === 'released' && banner.playerNo ? `#${banner.playerNo} ` : ''}{banner.player}</h2>
+            {banner.type === 'released' && (
+              <div style={{ fontSize: '1.4rem' }}>released by <strong>{banner.team}</strong> · back in the auction pool</div>
+            )}
             {banner.type === 'sold' && (
               <>
                 <div style={{ fontSize: '1.4rem' }}>to <strong>{banner.team}</strong></div>

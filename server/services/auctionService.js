@@ -41,14 +41,27 @@ function computeNextBid(auction, settings) {
 /** Full snapshot of the live auction screen: sent on every REST read and every socket event. */
 async function getCurrentState() {
   const settings = await Settings.get();
-  const [auction, teams, stats] = await Promise.all([
+  const [auction, teams, stats, releases] = await Promise.all([
     Auction.findOne({ status: 'LIVE' })
       .populate('player')
       .populate('highestBidder', 'name logo color')
       .populate('previousTeam', 'name logo color'),
     Team.find().sort({ name: 1 }).select(TEAM_FIELDS).populate('captain', 'name photo'),
     getRoundStats(settings.currentRound),
+    Transaction.find({ type: 'PLAYER_RELEASE' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('player', 'name playerNo photo playerType status')
+      .populate('team', 'name color logo'),
   ]);
+
+  // Public-safe summary of the latest releases (no amounts) for the live screen.
+  const recentReleases = releases.filter((r) => r.player).map((r) => ({
+    id: r._id,
+    at: r.createdAt,
+    player: { _id: r.player._id, name: r.player.name, playerNo: r.player.playerNo, photo: r.player.photo, playerType: r.player.playerType, status: r.player.status },
+    team: r.team ? { name: r.team.name, color: r.team.color } : null,
+  }));
 
   let bids = [];
   if (auction) {
@@ -61,6 +74,7 @@ async function getCurrentState() {
     teams,
     settings,
     stats,
+    recentReleases,
     roundConfig: settings.getRoundConfig(settings.currentRound),
     nextBidAmount: computeNextBid(auction, settings),
     serverTime: new Date(),
