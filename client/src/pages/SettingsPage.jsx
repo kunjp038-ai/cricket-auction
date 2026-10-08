@@ -34,6 +34,7 @@ export default function SettingsPage() {
       const r = await settingsApi.update({
         auctionName: form.auctionName,
         bidIncrement: Number(form.bidIncrement),
+        bidIncrement2: Number(form.bidIncrement2 || 1000),
         maxBid: Number(form.maxBid),
         defaultBasePrice: Number(form.defaultBasePrice),
         defaultTimerSeconds: Number(form.defaultTimerSeconds),
@@ -88,7 +89,8 @@ export default function SettingsPage() {
           <h2 className="mt">Auction behaviour</h2>
           <div className="form-grid">
             <div className="field full"><label>Auction Name</label><input value={form.auctionName} onChange={set('auctionName')} /></div>
-            <div className="field"><label>Price step for −/+ buttons (₹)</label><input type="number" min="1" step="any" value={form.bidIncrement} onChange={set('bidIncrement')} required /><span className="help">Any amount, e.g. 500 or 1000.</span></div>
+            <div className="field"><label>Bid button 1 (₹)</label><input type="number" min="1" step="any" value={form.bidIncrement} onChange={set('bidIncrement')} required /><span className="help">Each team gets a +button of this amount, e.g. +500.</span></div>
+            <div className="field"><label>Bid button 2 (₹)</label><input type="number" min="1" step="any" value={form.bidIncrement2 ?? 1000} onChange={set('bidIncrement2')} required /><span className="help">Second +button, e.g. +1000.</span></div>
             <div className="field"><label>Maximum sold price (₹)</label><input type="number" min="0" step="any" value={form.maxBid} onChange={set('maxBid')} /><span className="help">0 = no limit.</span></div>
             <div className="field full">
               <label>Auction order</label>

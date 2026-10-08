@@ -60,7 +60,8 @@ export default function LiveDisplayPage() {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats, roundConfig, serverTime } = state;
+  const { auction, settings, stats, roundConfig, serverTime, bids = [] } = state;
+  const hasBids = !!auction && auction.bidCount > 0;
   const player = auction?.player;
 
   return (
@@ -103,16 +104,25 @@ export default function LiveDisplayPage() {
             </div>
           </div>
           <div className="card bid-box">
-            {auction.timerEndsAt ? (
-              <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} totalSeconds={auction.timerSeconds} big />
-            ) : (
-              <>
-                <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>
-                <div className="current">{inr(auction.basePrice)}</div>
-              </>
+            {auction.timerEndsAt && (
+              <div className="flex" style={{ justifyContent: 'center' }}>
+                <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} totalSeconds={auction.timerSeconds} />
+              </div>
             )}
-            <div className="bidder" style={{ fontSize: '1.4rem' }}>🔨 Bidding in progress…</div>
-            {settings.maxBid > 0 && <div className="next">Maximum bid {inr(settings.maxBid)}</div>}
+            <div className="muted" style={{ letterSpacing: 3 }}>{hasBids ? 'CURRENT BID' : 'BASE PRICE'}</div>
+            <div className="current">{inr(hasBids ? auction.currentBid : auction.basePrice)}</div>
+            <div className="leading-team" style={{ fontSize: '2rem' }}>{hasBids ? `🏆 ${auction.highestBidder?.name}` : '🔨 Waiting for the first bid…'}</div>
+            {bids.length > 0 && (
+              <ul className="bid-ladder big">
+                {bids.slice(0, 6).map((b) => (
+                  <li key={b._id}>
+                    <span><span className="color-dot" style={{ background: b.team?.color, marginRight: 8 }} />{b.team?.name || b.bidderName}</span>
+                    <span className="raise">{b.raise > 0 ? `+${inr(b.raise)}` : 'Base'}</span>
+                    <span className="total">{inr(b.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       ) : (

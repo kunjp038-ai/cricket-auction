@@ -18,6 +18,7 @@ router.post('/:id/bid', objectId('id'), bidBody, validate, ctrl.bid);
 router.post('/:id/sold', objectId('id'), soldBody, validate, ctrl.sold);
 router.post('/:id/unsold', objectId('id'), validate, ctrl.unsold);
 router.post('/:id/cancel', objectId('id'), validate, ctrl.cancel);
+router.post('/:id/undo-bid', objectId('id'), validate, ctrl.undoBid);
 router.post('/:id/timer', objectId('id'), validate, ctrl.resetTimer);
 router.post('/:id/next', objectId('id'), validate, ctrl.next);
 

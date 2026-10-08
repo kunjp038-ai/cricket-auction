@@ -200,7 +200,14 @@ async function nextPlayer({ adminId }) {
 /* Bidding                                                             */
 /* ------------------------------------------------------------------ */
 
-async function placeBid({ auctionId, teamId, adminId }) {
+/**
+ * Records a bid called out in the room.
+ *  increment = 0      -> opening bid at the base price (only allowed as the first bid)
+ *  increment = N > 0  -> previous total (or base price for the first bid) + N
+ *  increment omitted  -> legacy behaviour: first bid = base, then + settings.bidIncrement
+ * Each bid restarts the countdown. No money is deducted until SOLD.
+ */
+async function placeBid({ auctionId, teamId, increment, adminId }) {
   const [auction, team, settings] = await Promise.all([
     Auction.findById(auctionId),
     Team.findById(teamId),
@@ -221,7 +228,17 @@ async function placeBid({ auctionId, teamId, adminId }) {
     throw ApiError.badRequest(`${team.name} previously owned this player and re-bidding by the previous team is disabled.`);
   }
 
-  const nextAmount = computeNextBid(auction, settings);
+  const startFrom = auction.bidCount === 0 ? auction.basePrice : auction.currentBid;
+  let raise;
+  if (increment === undefined || increment === null || increment === '') {
+    raise = auction.bidCount === 0 ? 0 : settings.bidIncrement;
+  } else {
+    raise = Number(increment);
+    if (!Number.isFinite(raise) || raise < 0) throw ApiError.badRequest('Invalid bid increment.');
+    if (raise === 0 && auction.bidCount > 0) throw ApiError.badRequest('The bid must be higher than the current bid.');
+  }
+  const nextAmount = startFrom + raise;
+
   if (settings.maxBid > 0 && nextAmount > settings.maxBid) {
     throw ApiError.badRequest(`Bid of ${formatINR(nextAmount)} exceeds the maximum bid limit of ${formatINR(settings.maxBid)}.`);
   }
@@ -233,10 +250,13 @@ async function placeBid({ auctionId, teamId, adminId }) {
     });
   }
 
+  const set = { currentBid: nextAmount, highestBidder: team._id };
+  if (auction.timerSeconds > 0) set.timerEndsAt = new Date(Date.now() + auction.timerSeconds * 1000);
+
   // Optimistic concurrency: the update only applies if no other bid landed in between.
   const updated = await Auction.findOneAndUpdate(
     { _id: auction._id, status: 'LIVE', bidCount: auction.bidCount },
-    { $set: { currentBid: nextAmount, highestBidder: team._id }, $inc: { bidCount: 1 } },
+    { $set: set, $inc: { bidCount: 1 } },
     { new: true }
   );
   if (!updated) throw ApiError.conflict('Another bid was placed at the same moment. Please try again.');
@@ -247,15 +267,43 @@ async function placeBid({ auctionId, teamId, adminId }) {
     team: team._id,
     bidderName: team.name,
     amount: nextAmount,
+    raise,
     round: auction.round,
     placedBy: adminId || null,
   });
 
+  const message = raise > 0
+    ? `${team.name} +${formatINR(raise)} → ${formatINR(nextAmount)}`
+    : `${team.name} opens at ${formatINR(nextAmount)}`;
   const state = await broadcast('auction:bid', {
-    bid: { team: team.name, amount: nextAmount, teamId: team._id },
-    message: `${team.name} bids ${formatINR(nextAmount)}`,
+    bid: { team: team.name, amount: nextAmount, raise, teamId: team._id },
+    message,
   });
-  return { bid, state };
+  return { bid, state, message };
+}
+
+/** Removes the most recent bid (a mistake on the console) and restores the previous total. */
+async function undoLastBid({ auctionId }) {
+  const auction = await Auction.findById(auctionId);
+  if (!auction) throw ApiError.notFound('Auction not found');
+  if (auction.status !== 'LIVE') throw ApiError.badRequest('This auction is no longer live.');
+  const last = await Bid.findOne({ auction: auction._id }).sort({ createdAt: -1, _id: -1 });
+  if (!last || auction.bidCount === 0) throw ApiError.badRequest('There is no bid to undo.');
+  const prev = await Bid.findOne({ auction: auction._id, _id: { $ne: last._id } }).sort({ createdAt: -1, _id: -1 });
+
+  const set = { currentBid: prev ? prev.amount : 0, highestBidder: prev ? prev.team : null };
+  if (auction.timerSeconds > 0) set.timerEndsAt = new Date(Date.now() + auction.timerSeconds * 1000);
+  const updated = await Auction.findOneAndUpdate(
+    { _id: auction._id, status: 'LIVE', bidCount: auction.bidCount },
+    { $set: set, $inc: { bidCount: -1 } },
+    { new: true }
+  );
+  if (!updated) throw ApiError.conflict('A bid was placed at the same moment. Please try again.');
+  await Bid.deleteOne({ _id: last._id });
+
+  const message = `Undid ${last.bidderName} ${formatINR(last.amount)}`;
+  const state = await broadcast('auction:bid', { message, undo: true });
+  return { state, message };
 }
 
 /* ------------------------------------------------------------------ */
@@ -695,6 +743,7 @@ module.exports = {
   markUnsold,
   cancelAuction,
   resetTimer,
+  undoLastBid,
   releasePlayer,
   startReAuction,
   getHistory,

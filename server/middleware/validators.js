@@ -54,6 +54,7 @@ const captainBody = (isUpdate = false) => {
 
 const settingsBody = [
   body('bidIncrement').optional().isFloat({ min: 1 }).withMessage('Bid increment must be at least 1').toFloat(),
+  body('bidIncrement2').optional().isFloat({ min: 1 }).withMessage('Second bid increment must be at least 1').toFloat(),
   body('minBid').optional().isFloat({ min: 0 }).withMessage('Minimum bid must be >= 0').toFloat(),
   body('maxBid').optional().isFloat({ min: 0 }).withMessage('Maximum bid must be >= 0 (0 = no limit)').toFloat(),
   body('defaultBasePrice').optional().isFloat({ min: 0 }).toFloat(),
@@ -75,7 +76,10 @@ const loginBody = [
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
-const bidBody = [body('teamId').isMongoId().withMessage('teamId is required')];
+const bidBody = [
+  body('teamId').isMongoId().withMessage('teamId is required'),
+  body('increment').optional().isFloat({ min: 0 }).withMessage('increment must be 0 or more').toFloat(),
+];
 
 const soldBody = [
   body('teamId').optional().isMongoId().withMessage('teamId must be a valid id'),

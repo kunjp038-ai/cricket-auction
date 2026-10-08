@@ -298,3 +298,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .timer-ring.over .ring-num { color: #fca5a5; font-size: 2.6rem; }
 .timer-ring.big.over .ring-num { font-size: 5rem; }
 @keyframes tickpulse { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* ---------- Bid ladder (live bidding) ---------- */
+.bid-ladder { list-style: none; padding: 0; margin: 0; max-height: 260px; overflow-y: auto; text-align: left; }
+.bid-ladder li { display: grid; grid-template-columns: 1fr auto auto; gap: .75rem; align-items: center; padding: .5rem .2rem; border-bottom: 1px dashed var(--border); font-size: .95rem; }
+.bid-ladder li:first-child { background: rgba(245,158,11,.12); border-radius: 8px; font-weight: 800; }
+.bid-ladder .raise { color: #fcd34d; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bid-ladder .total { font-weight: 800; font-variant-numeric: tabular-nums; }
+.bid-ladder.big li { font-size: 1.35rem; padding: .7rem .4rem; }
+.bid-btns { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem; }
+.bid-btns .btn { font-size: 1.05rem; padding: .7rem .5rem; }
+.bid-btns .full { grid-column: 1 / -1; }
+.leading-team { font-size: 1.4rem; font-weight: 800; color: #fcd34d; }

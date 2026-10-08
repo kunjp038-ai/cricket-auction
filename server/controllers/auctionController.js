@@ -13,8 +13,15 @@ exports.start = asyncHandler(async (req, res) => {
 });
 
 exports.bid = asyncHandler(async (req, res) => {
-  const result = await auctionService.placeBid({ auctionId: req.params.id, teamId: req.body.teamId, adminId: req.admin._id });
-  res.json({ success: true, message: 'Bid placed', ...result });
+  const result = await auctionService.placeBid({
+    auctionId: req.params.id, teamId: req.body.teamId, increment: req.body.increment, adminId: req.admin._id,
+  });
+  res.json({ success: true, message: result.message, ...result });
+});
+
+exports.undoBid = asyncHandler(async (req, res) => {
+  const result = await auctionService.undoLastBid({ auctionId: req.params.id });
+  res.json({ success: true, ...result });
 });
 
 exports.sold = asyncHandler(async (req, res) => {
