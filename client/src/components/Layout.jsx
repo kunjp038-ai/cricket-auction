@@ -33,7 +33,7 @@ export default function Layout() {
         <div className="brand">
           <div className="brand-logo" />
           <div>
-            <h1>Cricket Auction</h1>
+            <h1>Pati Premier League</h1>
             <span className="small muted">Admin Console</span>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function Layout() {
           <button className="btn btn-ghost btn-icon hamburger" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu">
             ☰
           </button>
-          <strong className="grow">Cricket Player Auction</strong>
+          <strong className="grow">Pati Premier League</strong>
           <span className="small muted flex gap-sm">
             <span className={`live-dot ${connected || socketDisabled ? 'on' : ''}`} /> {connected ? 'Live' : socketDisabled ? 'Live (polling)' : 'Offline'}
           </span>

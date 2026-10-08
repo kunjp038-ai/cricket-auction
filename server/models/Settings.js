@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const settingsSchema = new mongoose.Schema(
   {
     key: { type: String, default: 'global', unique: true },
-    auctionName: { type: String, default: 'Cricket Player Auction', trim: true },
+    auctionName: { type: String, default: 'Pati Premier League', trim: true },
     // Two raise buttons per team on the auction console (e.g. +500 and +1000).
     bidIncrement: { type: Number, default: 500, min: 1 },
     bidIncrement2: { type: Number, default: 1000, min: 1 },

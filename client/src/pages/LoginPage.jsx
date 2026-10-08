@@ -39,7 +39,7 @@ export default function LoginPage() {
         <div className="brand" style={{ padding: 0 }}>
           <div className="brand-logo" />
           <div>
-            <h1 style={{ fontSize: '1.2rem' }}>Cricket Player Auction</h1>
+            <h1 style={{ fontSize: '1.2rem' }}>Pati Premier League</h1>
             <span className="small muted">{needsSetup ? 'Create the first admin account' : 'Admin login'}</span>
           </div>
         </div>

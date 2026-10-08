@@ -1,4 +1,4 @@
-# 🏏 Cricket Player Auction Management System
+# 🏏 Pati Premier League – Player Auction System
 
 A full-stack system to run a live cricket player auction: register players, create teams and captains, run rounds of live bidding with real-time updates on every screen, sell / unsold / release / re-auction players, and keep a complete, never-deleted auction and financial history.
 
