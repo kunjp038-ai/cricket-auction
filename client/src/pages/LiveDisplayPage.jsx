@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Avatar from '../components/Avatar.jsx';
 import Badge from '../components/Badge.jsx';
-import TeamCard from '../components/TeamCard.jsx';
 import Spinner from '../components/Spinner.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
@@ -124,9 +123,6 @@ export default function LiveDisplayPage() {
         </div>
       )}
 
-      <div className="team-bid-grid">
-        {teams.map((t) => <TeamCard key={t._id} team={t} />)}
-      </div>
 
       {banner && (
         <div className="sold-banner" onClick={() => setBanner(null)}>
