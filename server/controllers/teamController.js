@@ -32,6 +32,11 @@ exports.assignCaptain = asyncHandler(async (req, res) => {
   res.json({ success: true, team, message: req.body.captainId ? 'Captain assigned' : 'Captain removed' });
 });
 
+exports.squads = asyncHandler(async (req, res) => {
+  const teams = await teamService.listSquadsPublic();
+  res.json({ success: true, teams });
+});
+
 exports.dashboard = asyncHandler(async (req, res) => {
   const data = await teamService.getDashboard(req.params.id);
   res.json({ success: true, ...data });

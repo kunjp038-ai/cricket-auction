@@ -3,6 +3,7 @@ import Avatar from '../components/Avatar.jsx';
 import Badge from '../components/Badge.jsx';
 import Spinner from '../components/Spinner.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
+import LiveSquads from '../components/LiveSquads.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
 import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
@@ -13,7 +14,8 @@ import { inr } from '../utils/format.js';
  * Public, read-only big-screen view for the audience / projector.
  * No login needed; it only consumes public GET endpoints and Socket.IO broadcasts.
  */
-export default function LiveDisplayPage() {
+export default function LiveDisplayPage({ initialTab = 'auction' }) {
+  const [tab, setTab] = useState(initialTab);
   const [state, setState] = useState(null);
   const [banner, setBanner] = useState(null);
 
@@ -82,6 +84,11 @@ export default function LiveDisplayPage() {
 
   return (
     <div className="live-page">
+      <div className="live-tabs">
+        <button className={tab === 'auction' ? 'active' : ''} onClick={() => setTab('auction')}>🔨 Live Auction</button>
+        <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>🛡️ Teams</button>
+      </div>
+
       <div className="auction-top">
         <div className="card title flex between">
           <div>
@@ -99,6 +106,8 @@ export default function LiveDisplayPage() {
         <div className="card kpi tone-warning"><span className="label">Base Price</span><span className="value">{inr(roundConfig.basePrice)}</span></div>
       </div>
 
+      {tab === 'teams' ? <LiveSquads /> : (
+      <>
       {auction ? (
         <div className="auction-stage">
           <div className="card player-stage">
@@ -164,6 +173,9 @@ export default function LiveDisplayPage() {
             ))}
           </div>
         </div>
+      )}
+
+      </>
       )}
 
       {banner && (

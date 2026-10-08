@@ -24,6 +24,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       {/* Public big-screen display for the audience (read-only, live via Socket.IO) */}
       <Route path="/live" element={<LiveDisplayPage />} />
+      <Route path="/live/teams" element={<LiveDisplayPage initialTab="teams" />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>

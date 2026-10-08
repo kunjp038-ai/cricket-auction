@@ -6,6 +6,7 @@ const { objectId, teamBody } = require('../middleware/validators');
 
 // Team list and dashboards are readable by the public live screen; mutations need an admin.
 router.get('/', ctrl.list);
+router.get('/squads', ctrl.squads); // public, no money fields
 router.get('/:id/dashboard', objectId('id'), validate, ctrl.dashboard);
 router.get('/:id', objectId('id'), validate, ctrl.get);
 

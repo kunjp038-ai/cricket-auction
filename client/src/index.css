@@ -313,3 +313,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .bid-btns .btn { font-size: 1.05rem; padding: .7rem .5rem; }
 .bid-btns .full { grid-column: 1 / -1; }
 .leading-team { font-size: 1.4rem; font-weight: 800; color: #fcd34d; }
+
+/* ---------- Live screen tabs + public squads ---------- */
+.live-tabs { display: flex; gap: .5rem; justify-content: center; }
+.live-tabs button { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: .6rem 1.4rem; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+.live-tabs button.active { background: linear-gradient(135deg, #22c55e, #16a34a); color: #04150a; border-color: transparent; }
+.squads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.squad-card { border-top: 4px solid var(--team-color); }
+.squad-head { display: flex; gap: .8rem; align-items: center; }
+.squad-list { list-style: none; padding: 0; margin: .8rem 0 0; display: flex; flex-direction: column; gap: .45rem; }
+.squad-list li { display: flex; align-items: center; gap: .6rem; padding: .35rem .4rem; border-radius: 10px; background: rgba(255,255,255,.03); }

@@ -64,6 +64,7 @@ export const teamsApi = {
   remove: (id) => api.delete(`/teams/${id}`),
   assignCaptain: (id, captainId) => api.put(`/teams/${id}/captain`, { captainId }),
   dashboard: (id) => api.get(`/teams/${id}/dashboard`),
+  squads: () => api.get('/teams/squads'),
 };
 
 /* ---------------- Captains ---------------- */

@@ -224,4 +224,24 @@ function escapeRegex(str = '') {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-module.exports = { listTeams, getTeam, createTeam, updateTeam, deleteTeam, assignCaptain, getDashboard };
+/** Public squads for the live screen: team, captain and bought players. No money fields. */
+async function listSquadsPublic() {
+  const teams = await Team.find()
+    .sort({ name: 1 })
+    .select('name logo color captain players maxPlayers')
+    .populate('captain', 'name photo')
+    .populate('players', 'name playerNo photo playerType battingStyle bowlingStyle');
+  return teams.map((t) => ({
+    _id: t._id,
+    name: t.name,
+    logo: t.logo,
+    color: t.color,
+    captain: t.captain ? { name: t.captain.name, photo: t.captain.photo } : null,
+    maxPlayers: t.maxPlayers,
+    players: (t.players || [])
+      .map((p) => ({ _id: p._id, name: p.name, playerNo: p.playerNo, photo: p.photo, playerType: p.playerType, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle }))
+      .sort((a, b) => (a.playerNo || 0) - (b.playerNo || 0)),
+  }));
+}
+
+module.exports = { listTeams, getTeam, createTeam, updateTeam, deleteTeam, assignCaptain, getDashboard, listSquadsPublic };
