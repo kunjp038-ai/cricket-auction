@@ -6,11 +6,12 @@ import Badge from '../components/Badge.jsx';
 import BudgetBar from '../components/BudgetBar.jsx';
 import KpiCard from '../components/KpiCard.jsx';
 import Spinner from '../components/Spinner.jsx';
+import SpecialPicks from '../components/SpecialPicks.jsx';
 import { teamsApi, playersApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr, fmtDate, roleLabel } from '../utils/format.js';
+import { inr, fmtDate, roleLabel, squadRoleTag } from '../utils/format.js';
 
 export default function TeamDashboardPage() {
   const { id } = useParams();
@@ -76,6 +77,8 @@ export default function TeamDashboardPage() {
         </div>
       </div>
 
+      <SpecialPicks team={team} squad={squad} onChanged={load} />
+
       <div className="tabs">
         <button className={tab === 'squad' ? 'active' : ''} onClick={() => setTab('squad')}>Squad ({squad.length})</button>
         <button className={tab === 'ledger' ? 'active' : ''} onClick={() => setTab('ledger')}>Transaction Ledger ({ledger.length})</button>
@@ -90,11 +93,11 @@ export default function TeamDashboardPage() {
               {squad.length === 0 && <tr><td colSpan={8} className="muted text-center">No players bought yet.</td></tr>}
               {squad.map((p) => (
                 <tr key={p._id}>
-                  <td><div className="flex row-click" onClick={() => navigate(`/players/${p._id}`)}><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong></div></td>
+                  <td><div className="flex row-click" onClick={() => navigate(`/players/${p._id}`)}><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong>{squadRoleTag(p) && <span className="role-tag">{squadRoleTag(p)}</span>}</div></td>
                   <td>{roleLabel(p)}</td><td>{p.battingStyle}</td><td>{p.bowlingStyle}</td><td>{p.round}</td>
                   <td className="num">{inr(p.bidAmount)}</td>
-                  <td><Badge tone="success">Active</Badge></td>
-                  <td className="text-right"><button className="btn btn-accent btn-sm" onClick={() => release(p)}>Release</button></td>
+                  <td><Badge tone="success">{p.squadRole ? `${p.squadRole} (fixed)` : 'Active'}</Badge></td>
+                  <td className="text-right">{p.squadRole ? <span className="small muted">Change above</span> : <button className="btn btn-accent btn-sm" onClick={() => release(p)}>Release</button>}</td>
                 </tr>
               ))}
             </tbody>

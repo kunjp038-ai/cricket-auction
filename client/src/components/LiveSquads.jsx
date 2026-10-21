@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Avatar from './Avatar.jsx';
 import Spinner from './Spinner.jsx';
 import { teamsApi } from '../services/api.js';
-import { roleLabel } from '../utils/format.js';
+import { roleLabel, squadRoleTag } from '../utils/format.js';
 
 /**
  * Public "Teams" view for the live screen: every team with its captain and the players it
@@ -44,7 +44,7 @@ export default function LiveSquads() {
                 <li key={p._id}>
                   <Avatar src={p.photo} name={p.name} size="sm" />
                   <span className="player-no sm">#{p.playerNo ?? '-'}</span>
-                  <span className="grow"><strong>{p.name}</strong><span className="small muted"> · {roleLabel(p)}</span></span>
+                  <span className="grow"><strong>{p.name}</strong>{squadRoleTag(p) && <span className="role-tag">{squadRoleTag(p)}</span>}<span className="small muted"> · {roleLabel(p)}</span></span>
                 </li>
               ))}
             </ul>

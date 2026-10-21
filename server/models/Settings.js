@@ -8,6 +8,9 @@ const settingsSchema = new mongoose.Schema(
     // Two raise buttons per team on the auction console (e.g. +500 and +1000).
     bidIncrement: { type: Number, default: 500, min: 1 },
     bidIncrement2: { type: Number, default: 1000, min: 1 },
+    // Fixed prices for the two pre-auction picks every team gets.
+    captainPrice: { type: Number, default: 0, min: 0 },
+    iconPrice: { type: Number, default: 0, min: 0 },
     // Lowest allowed base price for a player.
     minBid: { type: Number, default: 500, min: 0 },
     // Highest bid allowed for a single player. 0 = no limit.

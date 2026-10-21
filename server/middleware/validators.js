@@ -56,6 +56,8 @@ const captainBody = (isUpdate = false) => {
 
 const settingsBody = [
   body('bidIncrement').optional().isFloat({ min: 1 }).withMessage('Bid increment must be at least 1').toFloat(),
+  body('captainPrice').optional().isFloat({ min: 0 }).withMessage('Captain price must be 0 or more').toFloat(),
+  body('iconPrice').optional().isFloat({ min: 0 }).withMessage('Icon price must be 0 or more').toFloat(),
   body('bidIncrement2').optional().isFloat({ min: 1 }).withMessage('Second bid increment must be at least 1').toFloat(),
   body('minBid').optional().isFloat({ min: 0 }).withMessage('Minimum bid must be >= 0').toFloat(),
   body('maxBid').optional().isFloat({ min: 0 }).withMessage('Maximum bid must be >= 0 (0 = no limit)').toFloat(),

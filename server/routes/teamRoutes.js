@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/teamController');
 const { protect } = require('../middleware/auth');
+const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { objectId, teamBody } = require('../middleware/validators');
 
@@ -15,5 +16,8 @@ router.post('/', teamBody(false), validate, ctrl.create);
 router.put('/:id', objectId('id'), teamBody(true), validate, ctrl.update);
 router.delete('/:id', objectId('id'), validate, ctrl.remove);
 router.put('/:id/captain', objectId('id'), validate, ctrl.assignCaptain);
+// Fixed-price pre-auction picks: role = Captain | Icon
+router.post('/:id/special/:role', objectId('id'), body('playerId').isMongoId().withMessage('Select a player'), validate, ctrl.assignSpecial);
+router.delete('/:id/special/:role', objectId('id'), validate, ctrl.removeSpecial);
 
 module.exports = router;

@@ -326,3 +326,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---------- Add player: wicket keeper question ---------- */
 .wk-ask { margin-top: .5rem; display: flex; flex-direction: column; gap: .45rem; padding: .6rem .75rem; border: 1px dashed rgba(56,189,248,.5); border-radius: 10px; background: rgba(56,189,248,.07); font-size: .88rem; font-weight: 600; }
+
+/* ---------- Captain & Icon picks ---------- */
+.special-slot { border: 1px solid var(--border); border-radius: 12px; padding: .8rem 1rem; background: rgba(255,255,255,.02); }
+.role-tag { display: inline-block; margin-left: .45rem; padding: .05rem .4rem; border-radius: 6px; font-size: .68rem; font-weight: 900; letter-spacing: .5px; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #2a1700; vertical-align: middle; }

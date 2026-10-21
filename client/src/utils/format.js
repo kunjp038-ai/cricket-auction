@@ -42,4 +42,7 @@ export const roleLabel = (p) => {
   return `${p.playerType}${pri}${wk}`;
 };
 
+/** Short badge text for Captain / Icon picks. */
+export const squadRoleTag = (p) => (p?.squadRole === 'Captain' ? 'C' : p?.squadRole === 'Icon' ? 'ICON' : '');
+
 export const pct = (part, total) => (total ? Math.min(100, Math.round((part / total) * 100)) : 0);

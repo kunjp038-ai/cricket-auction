@@ -65,6 +65,9 @@ export const teamsApi = {
   assignCaptain: (id, captainId) => api.put(`/teams/${id}/captain`, { captainId }),
   dashboard: (id) => api.get(`/teams/${id}/dashboard`),
   squads: () => api.get('/teams/squads'),
+  // role: 'Captain' | 'Icon' – fixed-price pre-auction picks
+  assignSpecial: (id, role, playerId) => api.post(`/teams/${id}/special/${role}`, { playerId }),
+  removeSpecial: (id, role) => api.delete(`/teams/${id}/special/${role}`),
 };
 
 /* ---------------- Captains ---------------- */

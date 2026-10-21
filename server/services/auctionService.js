@@ -546,6 +546,7 @@ async function releasePlayer({ playerId, adminId }) {
     player.status = 'Re-Auction';
     player.currentTeam = null;
     player.soldPrice = 0;
+    player.squadRole = '';
     player.releaseCount += 1;
     player.lastReleasedAt = new Date();
     await player.save({ session });

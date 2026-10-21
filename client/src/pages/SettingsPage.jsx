@@ -35,6 +35,8 @@ export default function SettingsPage() {
         auctionName: form.auctionName,
         bidIncrement: Number(form.bidIncrement),
         bidIncrement2: Number(form.bidIncrement2 || 1000),
+        captainPrice: Number(form.captainPrice || 0),
+        iconPrice: Number(form.iconPrice || 0),
         maxBid: Number(form.maxBid),
         defaultBasePrice: Number(form.defaultBasePrice),
         defaultTimerSeconds: Number(form.defaultTimerSeconds),
@@ -79,6 +81,13 @@ export default function SettingsPage() {
             </table>
           </div>
           <button type="button" className="btn btn-ghost btn-sm mt" onClick={addRound}>➕ Add round</button>
+
+          <h2 className="mt">Captain &amp; Icon price</h2>
+          <p className="small muted" style={{ marginTop: 0 }}>Every team picks one Captain and one Icon player before the auction at these fixed prices (Team page → Captain &amp; Icon players).</p>
+          <div className="form-grid">
+            <div className="field"><label>©️ Captain price (₹)</label><input type="number" min="0" step="any" value={form.captainPrice ?? 0} onChange={set('captainPrice')} /></div>
+            <div className="field"><label>⭐ Icon price (₹)</label><input type="number" min="0" step="any" value={form.iconPrice ?? 0} onChange={set('iconPrice')} /></div>
+          </div>
 
           <h2 className="mt">Fallback for rounds not listed</h2>
           <div className="form-grid">

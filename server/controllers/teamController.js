@@ -32,6 +32,20 @@ exports.assignCaptain = asyncHandler(async (req, res) => {
   res.json({ success: true, team, message: req.body.captainId ? 'Captain assigned' : 'Captain removed' });
 });
 
+const specialPlayerService = require('../services/specialPlayerService');
+
+exports.assignSpecial = asyncHandler(async (req, res) => {
+  const result = await specialPlayerService.assignSpecialPlayer({
+    teamId: req.params.id, playerId: req.body.playerId, role: req.params.role, adminId: req.admin._id,
+  });
+  res.json({ success: true, message: result.message, player: result.player, team: result.team });
+});
+
+exports.removeSpecial = asyncHandler(async (req, res) => {
+  const result = await specialPlayerService.removeSpecialPlayer({ teamId: req.params.id, role: req.params.role, adminId: req.admin._id });
+  res.json({ success: true, message: result.message });
+});
+
 exports.squads = asyncHandler(async (req, res) => {
   const teams = await teamService.listSquadsPublic();
   res.json({ success: true, teams });

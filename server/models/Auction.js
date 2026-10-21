@@ -27,6 +27,8 @@ const auctionSchema = new mongoose.Schema(
     completedAt: { type: Date, default: null },
     // Set when the winning team later releases the player. The SOLD record itself is preserved.
     releasedAt: { type: Date, default: null },
+    // AUCTION = won by bidding; CAPTAIN / ICON = fixed-price pre-auction assignment.
+    saleType: { type: String, enum: ['AUCTION', 'CAPTAIN', 'ICON'], default: 'AUCTION' },
     conductedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
   },
   { timestamps: true }
