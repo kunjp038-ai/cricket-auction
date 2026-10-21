@@ -18,6 +18,7 @@ const playerBody = (isUpdate = false) => {
     body('playerNo').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Player number must be a whole number of 1 or more').toInt(),
     opt(body('name').trim().notEmpty().withMessage('Player name is required').isLength({ max: 80 })),
     phone('phone', isUpdate),
+    body('allRounderPriority').optional({ values: 'null' }).isIn(['', 'Batting', 'Bowling']).withMessage('All-rounder priority must be Batting or Bowling'),
     body('canKeepWicket').optional().isBoolean().withMessage('canKeepWicket must be true or false').toBoolean(),
     opt(body('playerType').isIn(PLAYER_TYPES).withMessage(`Player type must be one of: ${PLAYER_TYPES.join(', ')}`)),
     opt(body('battingStyle').isIn(BATTING_STYLES).withMessage(`Batting style must be one of: ${BATTING_STYLES.join(', ')}`)),

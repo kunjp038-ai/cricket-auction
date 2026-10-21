@@ -79,6 +79,7 @@ async function createPlayer(data) {
     phone: data.phone,
     playerType: data.playerType,
     canKeepWicket: data.playerType === 'Wicket Keeper' ? true : Boolean(data.canKeepWicket),
+    allRounderPriority: data.playerType === 'All-Rounder' ? (data.allRounderPriority || '') : '',
     battingStyle: data.battingStyle,
     bowlingStyle: data.bowlingStyle || 'None',
     tshirtSize: data.tshirtSize || 'M',
@@ -118,10 +119,11 @@ async function updatePlayer(id, data) {
 
   if (data.basePrice !== undefined) player.basePrice = data.basePrice;
 
-  ['name', 'phone', 'playerType', 'canKeepWicket', 'battingStyle', 'bowlingStyle', 'tshirtSize', 'address', 'photo'].forEach((f) => {
+  ['name', 'phone', 'playerType', 'canKeepWicket', 'allRounderPriority', 'battingStyle', 'bowlingStyle', 'tshirtSize', 'address', 'photo'].forEach((f) => {
     if (data[f] !== undefined) player[f] = data[f];
   });
   if (player.playerType === 'Wicket Keeper') player.canKeepWicket = true;
+  if (player.playerType !== 'All-Rounder') player.allRounderPriority = '';
 
   await player.save();
   emitAuctionEvent('players:updated', { message: `Player ${player.name} updated` });

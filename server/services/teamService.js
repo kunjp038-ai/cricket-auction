@@ -50,7 +50,7 @@ async function listTeams() {
 async function getTeam(id) {
   const team = await Team.findById(id)
     .populate('captain', 'name phone photo')
-    .populate('players', 'name playerType canKeepWicket battingStyle bowlingStyle photo soldPrice status basePrice');
+    .populate('players', 'name playerType canKeepWicket allRounderPriority battingStyle bowlingStyle photo soldPrice status basePrice');
   if (!team) throw ApiError.notFound('Team not found');
   return team;
 }
@@ -168,7 +168,7 @@ async function deleteTeam(id) {
 async function getDashboard(id) {
   const team = await Team.findById(id)
     .populate('captain', 'name phone photo')
-    .populate('players', 'name playerNo playerType canKeepWicket battingStyle bowlingStyle tshirtSize photo soldPrice status basePrice auctionRound');
+    .populate('players', 'name playerNo playerType canKeepWicket allRounderPriority battingStyle bowlingStyle tshirtSize photo soldPrice status basePrice auctionRound');
   if (!team) throw ApiError.notFound('Team not found');
 
   const [activeSales, releasedSales, ledger] = await Promise.all([
@@ -188,6 +188,7 @@ async function getDashboard(id) {
       playerNo: p.playerNo,
       playerType: p.playerType,
       canKeepWicket: p.canKeepWicket,
+      allRounderPriority: p.allRounderPriority,
       battingStyle: p.battingStyle,
       bowlingStyle: p.bowlingStyle,
       tshirtSize: p.tshirtSize,
@@ -232,7 +233,7 @@ async function listSquadsPublic() {
     .sort({ name: 1 })
     .select('name logo color captain players maxPlayers')
     .populate('captain', 'name photo')
-    .populate('players', 'name playerNo photo playerType canKeepWicket battingStyle bowlingStyle');
+    .populate('players', 'name playerNo photo playerType canKeepWicket allRounderPriority battingStyle bowlingStyle');
   return teams.map((t) => ({
     _id: t._id,
     name: t.name,
@@ -241,7 +242,7 @@ async function listSquadsPublic() {
     captain: t.captain ? { name: t.captain.name, photo: t.captain.photo } : null,
     maxPlayers: t.maxPlayers,
     players: (t.players || [])
-      .map((p) => ({ _id: p._id, name: p.name, playerNo: p.playerNo, photo: p.photo, playerType: p.playerType, canKeepWicket: p.canKeepWicket, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle }))
+      .map((p) => ({ _id: p._id, name: p.name, playerNo: p.playerNo, photo: p.photo, playerType: p.playerType, canKeepWicket: p.canKeepWicket, allRounderPriority: p.allRounderPriority, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle }))
       .sort((a, b) => (a.playerNo || 0) - (b.playerNo || 0)),
   }));
 }

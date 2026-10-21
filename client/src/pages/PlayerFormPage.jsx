@@ -7,7 +7,7 @@ import { playersApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 
 const EMPTY = {
-  playerNo: '', name: '', phone: '', playerType: 'Batsman', canKeepWicket: false, battingStyle: 'Right Hand', bowlingStyle: 'None',
+  playerNo: '', name: '', phone: '', playerType: 'Batsman', canKeepWicket: false, allRounderPriority: '', battingStyle: 'Right Hand', bowlingStyle: 'None',
   tshirtSize: 'M', address: '', photo: '', status: 'Available',
 };
 
@@ -30,7 +30,7 @@ export default function PlayerFormPage() {
           const player = p.player;
           setOriginal(player);
           setForm({
-            playerNo: player.playerNo ?? '', name: player.name, phone: player.phone, playerType: player.playerType, canKeepWicket: !!player.canKeepWicket,
+            playerNo: player.playerNo ?? '', name: player.name, phone: player.phone, playerType: player.playerType, canKeepWicket: !!player.canKeepWicket, allRounderPriority: player.allRounderPriority || '',
             battingStyle: player.battingStyle, bowlingStyle: player.bowlingStyle, tshirtSize: player.tshirtSize,
             address: player.address || '', photo: player.photo || '', status: player.status,
           });
@@ -48,6 +48,7 @@ export default function PlayerFormPage() {
     if (!form.playerNo || Number(form.playerNo) < 1) errs.playerNo = 'Player number is required';
     if (!form.name.trim()) errs.name = 'Name is required';
     if (!/^(?:[6-9]\d{9}|\+?\d{10,15})$/.test(form.phone.trim())) errs.phone = 'Enter a valid 10-digit phone number';
+    if (form.playerType === 'All-Rounder' && !form.allRounderPriority) errs.allRounderPriority = 'Choose batting first or bowling first';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -102,7 +103,17 @@ export default function PlayerFormPage() {
           </div>
           <div className="field">
             <label>Player Type <span className="req">*</span></label>
-            <select value={form.playerType} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, playerType: v, canKeepWicket: v === 'Wicket Keeper' ? true : v === 'Bowler' ? false : f.canKeepWicket })); }}>{meta.playerTypes.map((t) => <option key={t}>{t}</option>)}</select>
+            <select value={form.playerType} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, playerType: v, canKeepWicket: v === 'Wicket Keeper' ? true : v === 'Bowler' ? false : f.canKeepWicket, allRounderPriority: v === 'All-Rounder' ? f.allRounderPriority : '' })); }}>{meta.playerTypes.map((t) => <option key={t}>{t}</option>)}</select>
+            {form.playerType === 'All-Rounder' && (
+              <div className="wk-ask">
+                <span>⚖️ All-rounder priority: what is this player stronger at?</span>
+                <div className="flex gap-sm">
+                  <button type="button" className={`btn btn-sm ${form.allRounderPriority === 'Batting' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setForm((f) => ({ ...f, allRounderPriority: 'Batting' }))}>🏏 Batting first</button>
+                  <button type="button" className={`btn btn-sm ${form.allRounderPriority === 'Bowling' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setForm((f) => ({ ...f, allRounderPriority: 'Bowling' }))}>🎯 Bowling first</button>
+                </div>
+                {errors.allRounderPriority ? <span className="error-text">{errors.allRounderPriority}</span> : !form.allRounderPriority && <span className="help">Please choose one.</span>}
+              </div>
+            )}
             {(form.playerType === 'Batsman' || form.playerType === 'All-Rounder') && (
               <div className="wk-ask">
                 <span>🧤 Does this player also keep wicket?</span>

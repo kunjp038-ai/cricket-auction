@@ -23,6 +23,8 @@ const playerSchema = new mongoose.Schema(
     playerType: { type: String, required: true, enum: PLAYER_TYPES },
     // Batsman / All-Rounder who can also keep wicket.
     canKeepWicket: { type: Boolean, default: false },
+    // All-Rounder only: main strength (Batting or Bowling). Empty for other types.
+    allRounderPriority: { type: String, enum: ['', 'Batting', 'Bowling'], default: '' },
     battingStyle: { type: String, required: true, enum: BATTING_STYLES },
     bowlingStyle: { type: String, required: true, enum: BOWLING_STYLES, default: 'None' },
     tshirtSize: { type: String, required: true, enum: TSHIRT_SIZES, default: 'M' },

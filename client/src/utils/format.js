@@ -35,7 +35,11 @@ export const statusTone = (status) => {
 };
 
 /** "Batsman + WK" when a batsman / all-rounder can also keep wicket. */
-export const roleLabel = (p) =>
-  p ? `${p.playerType}${p.canKeepWicket && p.playerType !== 'Wicket Keeper' ? ' + WK' : ''}` : '';
+export const roleLabel = (p) => {
+  if (!p) return '';
+  const pri = p.playerType === 'All-Rounder' && p.allRounderPriority ? ` (${p.allRounderPriority})` : '';
+  const wk = p.canKeepWicket && p.playerType !== 'Wicket Keeper' ? ' + WK' : '';
+  return `${p.playerType}${pri}${wk}`;
+};
 
 export const pct = (part, total) => (total ? Math.min(100, Math.round((part / total) * 100)) : 0);
