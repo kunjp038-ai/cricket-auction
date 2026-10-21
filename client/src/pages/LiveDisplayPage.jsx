@@ -8,7 +8,7 @@ import SoundToggle from '../components/SoundToggle.jsx';
 import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr } from '../utils/format.js';
+import { inr, roleLabel } from '../utils/format.js';
 
 /**
  * Public, read-only big-screen view for the audience / projector.
@@ -120,7 +120,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
               </div>
               <div className="name">{player.name}</div>
               <div className="meta">
-                <span className="chip">{player.playerType}</span>
+                <span className="chip">{roleLabel(player)}</span>
                 <span className="chip">🏏 {player.battingStyle}</span>
                 <span className="chip">🎯 {player.bowlingStyle}</span>
                 <span className="chip">👕 {player.tshirtSize}</span>

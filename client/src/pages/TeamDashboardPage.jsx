@@ -10,7 +10,7 @@ import { teamsApi, playersApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr, fmtDate } from '../utils/format.js';
+import { inr, fmtDate, roleLabel } from '../utils/format.js';
 
 export default function TeamDashboardPage() {
   const { id } = useParams();
@@ -91,7 +91,7 @@ export default function TeamDashboardPage() {
               {squad.map((p) => (
                 <tr key={p._id}>
                   <td><div className="flex row-click" onClick={() => navigate(`/players/${p._id}`)}><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong></div></td>
-                  <td>{p.playerType}</td><td>{p.battingStyle}</td><td>{p.bowlingStyle}</td><td>{p.round}</td>
+                  <td>{roleLabel(p)}</td><td>{p.battingStyle}</td><td>{p.bowlingStyle}</td><td>{p.round}</td>
                   <td className="num">{inr(p.bidAmount)}</td>
                   <td><Badge tone="success">Active</Badge></td>
                   <td className="text-right"><button className="btn btn-accent btn-sm" onClick={() => release(p)}>Release</button></td>

@@ -13,7 +13,7 @@ import { auctionApi } from '../services/api.js';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
-import { inr } from '../utils/format.js';
+import { inr, roleLabel } from '../utils/format.js';
 
 /**
  * Admin live auction console.
@@ -157,7 +157,7 @@ export default function AuctionPage() {
                 </div>
                 <div className="name">{player.name}</div>
                 <div className="meta">
-                  <span className="chip">{player.playerType}</span>
+                  <span className="chip">{roleLabel(player)}</span>
                   <span className="chip">🏏 {player.battingStyle}</span>
                   <span className="chip">🎯 {player.bowlingStyle}</span>
                   <span className="chip">👕 {player.tshirtSize}</span>
@@ -290,7 +290,7 @@ export default function AuctionPage() {
                   <tr key={p._id}>
                     <td><span className="player-no sm">#{p.playerNo ?? '-'}</span></td>
                     <td><div className="flex"><Avatar src={p.photo} name={p.name} size="sm" /><strong>{p.name}</strong></div></td>
-                    <td>{p.playerType}</td><td><Badge status={p.status} /></td>
+                    <td>{roleLabel(p)}</td><td><Badge status={p.status} /></td>
                     <td className="text-right"><button className="btn btn-primary btn-sm" onClick={() => { setPickOpen(false); run('start', () => auctionApi.start(p._id)); }}>Auction</button></td>
                   </tr>
                 ))}

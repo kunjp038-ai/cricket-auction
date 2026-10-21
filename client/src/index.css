@@ -323,3 +323,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .squad-head { display: flex; gap: .8rem; align-items: center; }
 .squad-list { list-style: none; padding: 0; margin: .8rem 0 0; display: flex; flex-direction: column; gap: .45rem; }
 .squad-list li { display: flex; align-items: center; gap: .6rem; padding: .35rem .4rem; border-radius: 10px; background: rgba(255,255,255,.03); }
+
+/* ---------- Add player: wicket keeper question ---------- */
+.wk-ask { margin-top: .5rem; display: flex; flex-direction: column; gap: .45rem; padding: .6rem .75rem; border: 1px dashed rgba(56,189,248,.5); border-radius: 10px; background: rgba(56,189,248,.07); font-size: .88rem; font-weight: 600; }

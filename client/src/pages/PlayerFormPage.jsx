@@ -7,7 +7,7 @@ import { playersApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 
 const EMPTY = {
-  playerNo: '', name: '', phone: '', playerType: 'Batsman', battingStyle: 'Right Hand', bowlingStyle: 'None',
+  playerNo: '', name: '', phone: '', playerType: 'Batsman', canKeepWicket: false, battingStyle: 'Right Hand', bowlingStyle: 'None',
   tshirtSize: 'M', address: '', photo: '', status: 'Available',
 };
 
@@ -30,7 +30,7 @@ export default function PlayerFormPage() {
           const player = p.player;
           setOriginal(player);
           setForm({
-            playerNo: player.playerNo ?? '', name: player.name, phone: player.phone, playerType: player.playerType,
+            playerNo: player.playerNo ?? '', name: player.name, phone: player.phone, playerType: player.playerType, canKeepWicket: !!player.canKeepWicket,
             battingStyle: player.battingStyle, bowlingStyle: player.bowlingStyle, tshirtSize: player.tshirtSize,
             address: player.address || '', photo: player.photo || '', status: player.status,
           });
@@ -102,7 +102,16 @@ export default function PlayerFormPage() {
           </div>
           <div className="field">
             <label>Player Type <span className="req">*</span></label>
-            <select value={form.playerType} onChange={set('playerType')}>{meta.playerTypes.map((t) => <option key={t}>{t}</option>)}</select>
+            <select value={form.playerType} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, playerType: v, canKeepWicket: v === 'Wicket Keeper' ? true : v === 'Bowler' ? false : f.canKeepWicket })); }}>{meta.playerTypes.map((t) => <option key={t}>{t}</option>)}</select>
+            {(form.playerType === 'Batsman' || form.playerType === 'All-Rounder') && (
+              <div className="wk-ask">
+                <span>🧤 Does this player also keep wicket?</span>
+                <div className="flex gap-sm">
+                  <button type="button" className={`btn btn-sm ${form.canKeepWicket ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setForm((f) => ({ ...f, canKeepWicket: true }))}>Yes, wicket keeper</button>
+                  <button type="button" className={`btn btn-sm ${!form.canKeepWicket ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setForm((f) => ({ ...f, canKeepWicket: false }))}>No</button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="field">
             <label>Batting Style <span className="req">*</span></label>

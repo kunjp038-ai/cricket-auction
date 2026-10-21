@@ -29,7 +29,10 @@ async function listPlayers(query = {}) {
     if (/^\d+$/.test(s)) or.push({ playerNo: Number(s) });
     filter.$or = or;
   }
-  if (query.playerType) filter.playerType = query.playerType;
+  if (query.playerType === 'Wicket Keeper') {
+    // Include batsmen / all-rounders who also keep wicket.
+    filter.$and = [{ $or: [{ playerType: 'Wicket Keeper' }, { canKeepWicket: true }] }];
+  } else if (query.playerType) filter.playerType = query.playerType;
   if (query.battingStyle) filter.battingStyle = query.battingStyle;
   if (query.bowlingStyle) filter.bowlingStyle = query.bowlingStyle;
   if (query.status) filter.status = { $in: String(query.status).split(',') };
@@ -75,6 +78,7 @@ async function createPlayer(data) {
     name: data.name,
     phone: data.phone,
     playerType: data.playerType,
+    canKeepWicket: data.playerType === 'Wicket Keeper' ? true : Boolean(data.canKeepWicket),
     battingStyle: data.battingStyle,
     bowlingStyle: data.bowlingStyle || 'None',
     tshirtSize: data.tshirtSize || 'M',
@@ -114,9 +118,10 @@ async function updatePlayer(id, data) {
 
   if (data.basePrice !== undefined) player.basePrice = data.basePrice;
 
-  ['name', 'phone', 'playerType', 'battingStyle', 'bowlingStyle', 'tshirtSize', 'address', 'photo'].forEach((f) => {
+  ['name', 'phone', 'playerType', 'canKeepWicket', 'battingStyle', 'bowlingStyle', 'tshirtSize', 'address', 'photo'].forEach((f) => {
     if (data[f] !== undefined) player[f] = data[f];
   });
+  if (player.playerType === 'Wicket Keeper') player.canKeepWicket = true;
 
   await player.save();
   emitAuctionEvent('players:updated', { message: `Player ${player.name} updated` });

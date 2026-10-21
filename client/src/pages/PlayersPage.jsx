@@ -10,7 +10,7 @@ import { playersApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr } from '../utils/format.js';
+import { inr, roleLabel } from '../utils/format.js';
 
 const EMPTY_META = { playerTypes: [], battingStyles: [], bowlingStyles: [], statuses: [] };
 
@@ -154,7 +154,7 @@ export default function PlayersPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{p.playerType}</td>
+                    <td>{roleLabel(p)}</td>
                     <td>{p.battingStyle}</td>
                     <td>{p.bowlingStyle}</td>
                     <td>{p.tshirtSize}</td>

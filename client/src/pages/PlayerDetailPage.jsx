@@ -8,7 +8,7 @@ import { playersApi, auctionApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 import { useConfirm } from '../hooks/useConfirm.jsx';
 import { useAuctionSocket } from '../hooks/useAuctionSocket.js';
-import { inr, fmtDate } from '../utils/format.js';
+import { inr, fmtDate, roleLabel } from '../utils/format.js';
 
 export default function PlayerDetailPage() {
   const { id } = useParams();
@@ -44,7 +44,7 @@ export default function PlayerDetailPage() {
     <>
       <PageHeader
         title={`#${player.playerNo ?? '-'} ${player.name}`}
-        subtitle={`${player.playerType} · ${player.battingStyle} · ${player.bowlingStyle}`}
+        subtitle={`${roleLabel(player)} · ${player.battingStyle} · ${player.bowlingStyle}`}
         actions={
           <>
             <Link to={`/players/${id}/edit`} className="btn btn-ghost">✏️ Edit</Link>

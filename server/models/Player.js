@@ -21,6 +21,8 @@ const playerSchema = new mongoose.Schema(
       validate: { validator: (v) => PHONE_REGEX.test(v), message: 'Invalid phone number' },
     },
     playerType: { type: String, required: true, enum: PLAYER_TYPES },
+    // Batsman / All-Rounder who can also keep wicket.
+    canKeepWicket: { type: Boolean, default: false },
     battingStyle: { type: String, required: true, enum: BATTING_STYLES },
     bowlingStyle: { type: String, required: true, enum: BOWLING_STYLES, default: 'None' },
     tshirtSize: { type: String, required: true, enum: TSHIRT_SIZES, default: 'M' },

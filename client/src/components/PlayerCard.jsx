@@ -1,5 +1,6 @@
 import Avatar from './Avatar.jsx';
 import Badge from './Badge.jsx';
+import { roleLabel } from '../utils/format.js';
 
 export default function PlayerCard({ player, onClick, action }) {
   return (
@@ -8,7 +9,7 @@ export default function PlayerCard({ player, onClick, action }) {
       <div className="info">
         <strong>{player.playerNo != null && <span className="player-no sm" style={{ marginRight: 6 }}>#{player.playerNo}</span>}{player.name}</strong>
         <span className="small muted">
-          {player.playerType} · {player.battingStyle}
+          {roleLabel(player)} · {player.battingStyle}
           {player.bowlingStyle && player.bowlingStyle !== 'None' ? ` · ${player.bowlingStyle}` : ''}
         </span>
         <div className="flex gap-sm" style={{ marginTop: 4 }}>
