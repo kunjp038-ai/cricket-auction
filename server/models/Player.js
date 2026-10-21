@@ -27,7 +27,8 @@ const playerSchema = new mongoose.Schema(
     allRounderPriority: { type: String, enum: ['', 'Batting', 'Bowling'], default: '' },
     battingStyle: { type: String, required: true, enum: BATTING_STYLES },
     bowlingStyle: { type: String, required: true, enum: BOWLING_STYLES, default: 'None' },
-    tshirtSize: { type: String, required: true, enum: TSHIRT_SIZES, default: 'M' },
+    // Standard sizes are in TSHIRT_SIZES; any other size (e.g. 3XL, 42) can be typed in.
+    tshirtSize: { type: String, required: true, trim: true, maxlength: [12, 'T-shirt size is too long'], default: 'M' },
     address: { type: String, trim: true, maxlength: 1000, default: '' },
     photo: { type: String, trim: true, default: '' },
     // Informational only: the auction uses the base price configured for the round in Settings.

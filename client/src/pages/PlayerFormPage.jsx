@@ -20,6 +20,7 @@ export default function PlayerFormPage() {
   const [form, setForm] = useState(EMPTY);
   const [original, setOriginal] = useState(null);
   const [errors, setErrors] = useState({});
+  const [otherSize, setOtherSize] = useState(false); // "Other (write size)" chosen for T-shirt
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function PlayerFormPage() {
     if (!form.name.trim()) errs.name = 'Name is required';
     if (!/^(?:[6-9]\d{9}|\+?\d{10,15})$/.test(form.phone.trim())) errs.phone = 'Enter a valid 10-digit phone number';
     if (form.playerType === 'All-Rounder' && !form.allRounderPriority) errs.allRounderPriority = 'Choose batting first or bowling first';
+    if (!String(form.tshirtSize || '').trim()) errs.tshirtSize = 'Write the T-shirt size';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -67,6 +69,7 @@ export default function PlayerFormPage() {
         // Stay on the form to add the next player quickly.
         const m = await playersApi.meta();
         setForm({ ...EMPTY, playerNo: m.nextPlayerNo });
+        setOtherSize(false);
         setErrors({});
       }
     } catch (err) {
@@ -134,7 +137,34 @@ export default function PlayerFormPage() {
           </div>
           <div className="field">
             <label>T-Shirt Size <span className="req">*</span></label>
-            <select value={form.tshirtSize} onChange={set('tshirtSize')}>{meta.tshirtSizes.map((t) => <option key={t}>{t}</option>)}</select>
+            {(() => {
+              const isStandard = meta.tshirtSizes.includes(form.tshirtSize) && !otherSize;
+              return (
+                <>
+                  <select
+                    value={isStandard ? form.tshirtSize : '__other'}
+                    onChange={(e) => {
+                      if (e.target.value === '__other') { setOtherSize(true); setForm((f) => ({ ...f, tshirtSize: '' })); }
+                      else { setOtherSize(false); setForm((f) => ({ ...f, tshirtSize: e.target.value })); }
+                    }}
+                  >
+                    {meta.tshirtSizes.map((t) => <option key={t} value={t}>{t}</option>)}
+                    <option value="__other">Other (write size)</option>
+                  </select>
+                  {!isStandard && (
+                    <input
+                      style={{ marginTop: '.4rem' }}
+                      value={form.tshirtSize}
+                      maxLength={12}
+                      placeholder="Write size, e.g. 3XL, 4XL, 42"
+                      onChange={(e) => setForm((f) => ({ ...f, tshirtSize: e.target.value.toUpperCase() }))}
+                      autoFocus={otherSize}
+                    />
+                  )}
+                  {errors.tshirtSize && <span className="error-text">{errors.tshirtSize}</span>}
+                </>
+              );
+            })()}
           </div>
           <div className="field">
             <label>Player Status</label>

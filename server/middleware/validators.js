@@ -23,7 +23,7 @@ const playerBody = (isUpdate = false) => {
     opt(body('playerType').isIn(PLAYER_TYPES).withMessage(`Player type must be one of: ${PLAYER_TYPES.join(', ')}`)),
     opt(body('battingStyle').isIn(BATTING_STYLES).withMessage(`Batting style must be one of: ${BATTING_STYLES.join(', ')}`)),
     opt(body('bowlingStyle').isIn(BOWLING_STYLES).withMessage(`Bowling style must be one of: ${BOWLING_STYLES.join(', ')}`)),
-    opt(body('tshirtSize').isIn(TSHIRT_SIZES).withMessage(`T-shirt size must be one of: ${TSHIRT_SIZES.join(', ')}`)),
+    opt(body('tshirtSize').trim().isLength({ min: 1, max: 12 }).withMessage(`T-shirt size is required (${TSHIRT_SIZES.join(', ')} or write another size, max 12 characters)`)),
     body('address').optional({ values: 'falsy' }).trim().isLength({ max: 1000 }).withMessage('Address is too long'),
     body('photo').optional({ values: 'falsy' }).trim().isLength({ max: 500 }),
     body('basePrice').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Base price must be a positive number').toFloat(),
