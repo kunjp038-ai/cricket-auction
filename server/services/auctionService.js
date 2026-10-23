@@ -221,7 +221,7 @@ async function nextPlayer({ adminId }) {
  *  increment omitted  -> legacy behaviour: first bid = base, then + settings.bidIncrement
  * Each bid restarts the countdown. No money is deducted until SOLD.
  */
-async function placeBid({ auctionId, teamId, increment, adminId }) {
+async function placeBid({ auctionId, teamId, increment, amount, adminId }) {
   const [auction, team, settings] = await Promise.all([
     Auction.findById(auctionId),
     Team.findById(teamId),
@@ -244,7 +244,18 @@ async function placeBid({ auctionId, teamId, increment, adminId }) {
 
   const startFrom = auction.bidCount === 0 ? auction.basePrice : auction.currentBid;
   let raise;
-  if (increment === undefined || increment === null || increment === '') {
+  if (amount !== undefined && amount !== null && amount !== '') {
+    // Direct amount called out by the team (e.g. 7000): must beat the current bid / meet the base price.
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) throw ApiError.badRequest('Enter a valid bid amount.');
+    if (auction.bidCount === 0 && amt < auction.basePrice) {
+      throw ApiError.badRequest(`Bid must be at least the base price ${formatINR(auction.basePrice)}.`);
+    }
+    if (auction.bidCount > 0 && amt <= auction.currentBid) {
+      throw ApiError.badRequest(`Bid must be higher than the current bid ${formatINR(auction.currentBid)}.`);
+    }
+    raise = amt - startFrom;
+  } else if (increment === undefined || increment === null || increment === '') {
     raise = auction.bidCount === 0 ? 0 : settings.bidIncrement;
   } else {
     raise = Number(increment);

@@ -32,6 +32,7 @@ export default function AuctionPage() {
   const [manualOpen, setManualOpen] = useState(false);
   const [manualTeam, setManualTeam] = useState('');
   const [manualAmount, setManualAmount] = useState('');
+  const [direct, setDirect] = useState({}); // teamId -> typed direct bid amount
 
   const load = useCallback(() => auctionApi.current().then(setState).catch((e) => toast.error(e.message)), [toast]);
   useEffect(() => { load(); }, [load]);
@@ -50,7 +51,7 @@ export default function AuctionPage() {
   useEffect(() => { if (state?.settings?.sounds) setCustomSoundUrls(state.settings.sounds); }, [state?.settings?.sounds]);
 
   const auctionId = state?.auction?._id;
-  useEffect(() => { setManualOpen(false); setManualTeam(''); setManualAmount(''); }, [auctionId]);
+  useEffect(() => { setManualOpen(false); setManualTeam(''); setManualAmount(''); setDirect({}); }, [auctionId]);
 
   const run = async (key, fn, { confirmOpts, quiet } = {}) => {
     if (confirmOpts && !(await confirm(confirmOpts))) return;
@@ -99,6 +100,15 @@ export default function AuctionPage() {
   };
 
   const bid = (team, raise) => run(`bid-${team._id}`, () => auctionApi.bid(auction._id, team._id, raise), { quiet: true });
+  const bidDirect = (team) => {
+    const amt = Number(direct[team._id]);
+    if (!amt) { toast.warning('Type the amount the team called'); return; }
+    run(`bid-${team._id}`, async () => {
+      const r = await auctionApi.bidAmount(auction._id, team._id, amt);
+      setDirect((d) => ({ ...d, [team._id]: '' }));
+      return r;
+    }, { quiet: true });
+  };
 
   const sellToLeader = () => run('sold', () => auctionApi.sold(auction._id));
 
@@ -238,6 +248,17 @@ export default function AuctionPage() {
                       <button className="btn btn-accent" disabled={!!busy || !!b2} onClick={() => bid(t, inc2)} title={b2 || `→ ${inr(amountAfter(inc2))}`}>
                         +{inc2}
                       </button>
+                      <div className="full direct-bid">
+                        <input
+                          type="number" min={auction.basePrice} step="any" inputMode="numeric"
+                          placeholder={`Direct ₹ (e.g. ${hasBids ? auction.currentBid + inc2 : auction.basePrice + inc2})`}
+                          value={direct[t._id] || ''}
+                          disabled={!!busy || t._id === leaderId}
+                          onChange={(e) => setDirect((d) => ({ ...d, [t._id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') bidDirect(t); }}
+                        />
+                        <button className="btn btn-info" disabled={!!busy || t._id === leaderId || !direct[t._id]} onClick={() => bidDirect(t)}>Bid</button>
+                      </div>
                       {t._id === leaderId ? <span className="small muted full text-center">Leading at {inr(auction.currentBid)}</span>
                         : (b1 && b1 !== 'Leading') ? <span className="small full text-center error-text">{b1}</span> : null}
                     </div>

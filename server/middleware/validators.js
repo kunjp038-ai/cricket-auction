@@ -83,6 +83,7 @@ const loginBody = [
 const bidBody = [
   body('teamId').isMongoId().withMessage('teamId is required'),
   body('increment').optional().isFloat({ min: 0 }).withMessage('increment must be 0 or more').toFloat(),
+  body('amount').optional({ values: 'falsy' }).isFloat({ min: 1 }).withMessage('amount must be a positive number').toFloat(),
 ];
 
 const soldBody = [

@@ -14,7 +14,7 @@ exports.start = asyncHandler(async (req, res) => {
 
 exports.bid = asyncHandler(async (req, res) => {
   const result = await auctionService.placeBid({
-    auctionId: req.params.id, teamId: req.body.teamId, increment: req.body.increment, adminId: req.admin._id,
+    auctionId: req.params.id, teamId: req.body.teamId, increment: req.body.increment, amount: req.body.amount, adminId: req.admin._id,
   });
   res.json({ success: true, message: result.message, ...result });
 });

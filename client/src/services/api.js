@@ -84,6 +84,8 @@ export const auctionApi = {
   start: (playerId) => api.post('/auctions/start', playerId ? { playerId } : {}),
   // increment: 0 = open at base price, otherwise amount added to the current total (e.g. 500 / 1000).
   bid: (auctionId, teamId, increment) => api.post(`/auctions/${auctionId}/bid`, { teamId, increment }),
+  // Direct amount called out by a team, e.g. 7000 (must beat the current bid).
+  bidAmount: (auctionId, teamId, amount) => api.post(`/auctions/${auctionId}/bid`, { teamId, amount }),
   undoBid: (auctionId) => api.post(`/auctions/${auctionId}/undo-bid`),
   // Pass { teamId, amount } to record a verbal auction result directly; omit to sell to the current highest bidder.
   sold: (auctionId, data) => api.post(`/auctions/${auctionId}/sold`, data || {}),
