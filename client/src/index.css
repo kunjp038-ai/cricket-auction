@@ -334,3 +334,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* ---------- Direct amount bid per team ---------- */
 .direct-bid { display: grid; grid-template-columns: 1fr auto; gap: .4rem; margin-top: .2rem; }
 .direct-bid input { font-weight: 700; text-align: center; }
+
+/* ---------- Photo crop dialog ---------- */
+.crop-frame { position: relative; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000; border: 2px solid var(--primary); cursor: grab; touch-action: none; user-select: none; }
+.crop-frame:active { cursor: grabbing; }
+.crop-frame img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
+.crop-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(255,255,255,.25) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.25) 1px, transparent 1px); background-size: 33.34% 33.34%; }
