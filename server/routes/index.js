@@ -10,10 +10,11 @@ router.use('/teams', require('./teamRoutes'));
 router.use('/captains', require('./captainRoutes'));
 router.use('/auctions', require('./auctionRoutes'));
 router.use('/settings', require('./settingsRoutes'));
+router.use('/images', require('./imageRoutes')); // photos stored in MongoDB
 
 router.get('/dashboard', protect, dashboardController.admin);
 
-// Image upload for player photos / team logos / captain photos.
+// Legacy disk upload (local/VPS only). The app now uses POST /api/images.
 router.post('/upload', protect, upload.single('image'), (req, res, next) => {
   if (!req.file) return next(ApiError.badRequest('No image uploaded. Send a multipart field named "image".'));
   res.status(201).json({ success: true, url: `/uploads/${req.file.filename}`, filename: req.file.filename });

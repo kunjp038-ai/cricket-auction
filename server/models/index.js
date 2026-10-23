@@ -8,4 +8,5 @@ module.exports = {
   Transaction: require('./Transaction'),
   Round: require('./Round'),
   Settings: require('./Settings'),
+  Image: require('./Image'),
 };

@@ -3,6 +3,24 @@ import Avatar from './Avatar.jsx';
 import { uploadApi } from '../services/api.js';
 import { useToast } from '../hooks/useToast.jsx';
 
+/** Shrinks a photo in the browser (max 600px, JPEG) so uploads stay small. */
+async function resizeImage(file, max = 600) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 400 * 1024) return file;
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.85));
+    return blob ? new File([blob], (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
+  } catch (e) {
+    return file; // browser cannot decode it (e.g. HEIC) – send as is
+  }
+}
+
 /**
  * Photo picker: uploads to /api/upload and stores the returned URL in the form,
  * or accepts a pasted external image URL.
@@ -17,7 +35,8 @@ export default function PhotoUpload({ value, onChange, name = '', label = 'Photo
     if (!file) return;
     setBusy(true);
     try {
-      const res = await uploadApi.image(file);
+      const small = await resizeImage(file);
+      const res = await uploadApi.image(small);
       onChange(res.url);
       toast.success('Image uploaded');
     } catch (err) {
@@ -44,7 +63,7 @@ export default function PhotoUpload({ value, onChange, name = '', label = 'Photo
           </div>
           <input type="text" placeholder="…or paste an image URL" value={value || ''} onChange={(e) => onChange(e.target.value)} />
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={pick} />
-          <span className="help">PNG, JPG, WEBP up to 3 MB</span>
+          <span className="help">PNG, JPG, WEBP up to 3 MB (photo is resized automatically)</span>
         </div>
       </div>
     </div>
