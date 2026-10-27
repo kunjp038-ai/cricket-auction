@@ -81,7 +81,7 @@ export const captainsApi = {
 /* ---------------- Auction ---------------- */
 export const auctionApi = {
   current: () => api.get('/auctions/current'),
-  version: () => api.get('/auctions/version'),
+  version: (since) => api.get('/auctions/version', { params: since ? { since } : {} }),
   start: (playerId) => api.post('/auctions/start', playerId ? { playerId } : {}),
   // increment: 0 = open at base price, otherwise amount added to the current total (e.g. 500 / 1000).
   bid: (auctionId, teamId, increment) => api.post(`/auctions/${auctionId}/bid`, { teamId, increment }),

@@ -1,9 +1,20 @@
 const asyncHandler = require('../utils/asyncHandler');
 const auctionService = require('../services/auctionService');
 
+/**
+ * GET /auctions/version?since=<v>
+ * Returns the current change stamp; when it differs from `since` the full state is included,
+ * so a polling screen needs only one request per tick.
+ */
 exports.version = asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ success: true, version: await auctionService.getVersion(), serverTime: new Date() });
+  const version = await auctionService.getVersion();
+  const since = req.query.since;
+  if (since !== undefined && since === version) {
+    return res.json({ success: true, version, changed: false, serverTime: new Date() });
+  }
+  const state = await auctionService.getCurrentState();
+  res.json({ success: true, version: state.version || version, changed: true, state, serverTime: new Date() });
 });
 
 exports.current = asyncHandler(async (req, res) => {

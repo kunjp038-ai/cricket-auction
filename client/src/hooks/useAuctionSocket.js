@@ -51,13 +51,13 @@ export function useAuctionSocket(onEvent, { poll = false, interval = 700 } = {})
       if (busy) return;
       busy = true;
       try {
-        const v = await auctionApi.version();
+        const v = await auctionApi.version(lastVersion);
         if (cancelled) return;
-        if (v.version !== lastVersion) {
-          const state = await auctionApi.current();
-          if (cancelled) return;
-          lastVersion = state.version || v.version;
-          if (handlerRef.current) handlerRef.current('poll', { state });
+        if (v.changed && v.state) {
+          lastVersion = v.version;
+          if (handlerRef.current) handlerRef.current('poll', { state: v.state });
+        } else if (!lastVersion) {
+          lastVersion = v.version;
         }
       } catch (e) {
         /* network hiccup – try again next tick */
