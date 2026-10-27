@@ -80,6 +80,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
 
   if (!state) return <Spinner full />;
   const { auction, settings, stats, roundConfig, serverTime, bids = [], recentReleases = [], nextPlayerAt } = state;
+  const showBids = settings.showBidsOnLive !== false;
   const hasBids = !!auction && auction.bidCount > 0;
   const player = auction?.player;
 
@@ -135,10 +136,19 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
                 <CountdownTimer endsAt={auction.timerEndsAt} serverTime={serverTime} totalSeconds={auction.timerSeconds} />
               </div>
             )}
-            <div className="muted" style={{ letterSpacing: 3 }}>{hasBids ? 'CURRENT BID' : 'BASE PRICE'}</div>
-            <div className="current">{inr(hasBids ? auction.currentBid : auction.basePrice)}</div>
+            {showBids ? (
+              <>
+                <div className="muted" style={{ letterSpacing: 3 }}>{hasBids ? 'CURRENT BID' : 'BASE PRICE'}</div>
+                <div className="current">{inr(hasBids ? auction.currentBid : auction.basePrice)}</div>
+              </>
+            ) : (
+              <>
+                <div className="muted" style={{ letterSpacing: 3 }}>BASE PRICE</div>
+                <div className="current">{inr(auction.basePrice)}</div>
+              </>
+            )}
             <div className="leading-team" style={{ fontSize: '2rem' }}>{hasBids ? `🏆 ${auction.highestBidder?.name}` : '🔨 Waiting for the first bid…'}</div>
-            {bids.length > 0 && (
+            {showBids && bids.length > 0 && (
               <ul className="bid-ladder big">
                 {bids.slice(0, 6).map((b) => (
                   <li key={b._id}>
@@ -193,7 +203,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
             {banner.type === 'sold' && (
               <>
                 <div style={{ fontSize: '1.4rem' }}>to <strong>{banner.team}</strong></div>
-                <div style={{ fontSize: '2.6rem', fontWeight: 900, color: '#86efac' }}>{inr(banner.amount)}</div>
+                {showBids && <div style={{ fontSize: '2.6rem', fontWeight: 900, color: '#86efac' }}>{inr(banner.amount)}</div>}
               </>
             )}
           </div>

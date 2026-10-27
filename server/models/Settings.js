@@ -45,6 +45,8 @@ const settingsSchema = new mongoose.Schema(
     allowPreviousTeamRebid: { type: Boolean, default: true },
     // After SOLD / UNSOLD automatically put the next player on the block.
     autoNextPlayer: { type: Boolean, default: true },
+    // Public live screen: show bid amounts / bid list (false = only player, timer and leading team).
+    showBidsOnLive: { type: Boolean, default: true },
     // Pause (seconds) after SOLD / UNSOLD before the next player comes up.
     autoNextDelaySeconds: { type: Number, default: 5, min: 0, max: 120 },
     // When set, the next player is started automatically once this time is reached.

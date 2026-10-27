@@ -65,6 +65,7 @@ const settingsBody = [
   body('defaultTimerSeconds').optional().isInt({ min: 0, max: 3600 }).withMessage('Timer must be 0-3600 seconds').toInt(),
   body('allowPreviousTeamRebid').optional().isBoolean().toBoolean(),
   body('autoNextPlayer').optional().isBoolean().toBoolean(),
+  body('showBidsOnLive').optional().isBoolean().toBoolean(),
   body('autoNextDelaySeconds').optional().isInt({ min: 0, max: 120 }).withMessage('Rest must be 0-120 seconds').toInt(),
   body('auctionOrder').optional().isIn(['random', 'number']).withMessage('auctionOrder must be random or number'),
   body('auctionName').optional().trim().isLength({ max: 100 }),
