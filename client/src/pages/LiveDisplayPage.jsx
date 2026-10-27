@@ -4,6 +4,7 @@ import Badge from '../components/Badge.jsx';
 import Spinner from '../components/Spinner.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
 import LiveSquads from '../components/LiveSquads.jsx';
+import NextPlayerCountdown from '../components/NextPlayerCountdown.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
 import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
@@ -78,7 +79,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
   );
 
   if (!state) return <Spinner full />;
-  const { auction, settings, stats, roundConfig, serverTime, bids = [], recentReleases = [] } = state;
+  const { auction, settings, stats, roundConfig, serverTime, bids = [], recentReleases = [], nextPlayerAt } = state;
   const hasBids = !!auction && auction.bidCount > 0;
   const player = auction?.player;
 
@@ -150,6 +151,8 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
             )}
           </div>
         </div>
+      ) : nextPlayerAt ? (
+        <NextPlayerCountdown nextPlayerAt={nextPlayerAt} serverTime={serverTime} big />
       ) : (
         <div className="card text-center" style={{ padding: '3rem' }}>
           <div style={{ fontSize: '3rem' }}>🏏</div>

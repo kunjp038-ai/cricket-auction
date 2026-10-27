@@ -46,11 +46,11 @@ async function getVersion() {
   const [a, t, s, p] = await Promise.all([
     Auction.findOne().sort({ updatedAt: -1 }).select('updatedAt bidCount status timerEndsAt').lean(),
     Transaction.findOne().sort({ createdAt: -1 }).select('createdAt').lean(),
-    Settings.findOne({ key: 'global' }).select('updatedAt currentRound').lean(),
+    Settings.findOne({ key: 'global' }).select('updatedAt currentRound pendingNextAt').lean(),
     Player.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
   ]);
   const ms = (d) => (d ? new Date(d).getTime() : 0);
-  return [ms(a && a.updatedAt), a ? a.bidCount : 0, a ? a.status : '', ms(a && a.timerEndsAt), ms(t && t.createdAt), ms(s && s.updatedAt), s ? s.currentRound : 0, ms(p && p.updatedAt)].join('-');
+  return [ms(a && a.updatedAt), a ? a.bidCount : 0, a ? a.status : '', ms(a && a.timerEndsAt), ms(t && t.createdAt), ms(s && s.updatedAt), s ? s.currentRound : 0, ms(p && p.updatedAt), ms(s && s.pendingNextAt)].join('-');
 }
 
 /** Full snapshot of the live auction screen: sent on every REST read and every socket event. */
@@ -95,6 +95,7 @@ async function getCurrentState() {
     nextBidAmount: computeNextBid(auction, settings),
     serverTime: new Date(),
     version,
+    nextPlayerAt: settings.pendingNextAt && !auction ? settings.pendingNextAt : null,
   };
 }
 
@@ -125,6 +126,7 @@ async function broadcast(event, extra = {}) {
 async function startAuction({ playerId, adminId }) {
   const live = await Auction.findOne({ status: 'LIVE' });
   if (live) throw ApiError.conflict('An auction is already live. Mark the current player SOLD or UNSOLD first.');
+  await Settings.updateOne({ key: 'global' }, { $set: { pendingNextAt: null } });
 
   const settings = await Settings.get();
 
@@ -195,11 +197,42 @@ async function maybeAutoNext(adminId) {
   if (!settings.autoNextPlayer) return null;
   const poolSize = await Player.countDocuments({ status: { $in: POOL_STATUSES } });
   if (poolSize === 0) return null;
+  const delay = Number(settings.autoNextDelaySeconds) || 0;
+  if (delay <= 0) {
+    try {
+      return await startAuction({ adminId });
+    } catch (err) {
+      console.warn('Auto-next failed:', err.message);
+      return null;
+    }
+  }
+  // Rest period: schedule the next player; runDueAutoStart() starts it when the time comes.
+  settings.pendingNextAt = new Date(Date.now() + delay * 1000);
+  await settings.save();
+  const state = await broadcast('auction:next-scheduled', { message: `Next player in ${delay}s`, nextPlayerAt: settings.pendingNextAt });
+  return { state, scheduled: true, nextPlayerAt: settings.pendingNextAt };
+}
+
+/** Called by polling/reads: if a scheduled next player is due, put it on the block. */
+async function runDueAutoStart() {
+  const s = await Settings.findOne({ key: 'global' }).select('pendingNextAt').lean();
+  if (!s || !s.pendingNextAt || new Date(s.pendingNextAt).getTime() > Date.now()) return false;
+  // Claim the slot atomically so concurrent pollers start only one auction.
+  const claimed = await Settings.findOneAndUpdate(
+    { key: 'global', pendingNextAt: s.pendingNextAt },
+    { $set: { pendingNextAt: null } }
+  );
+  if (!claimed) return false;
+  const live = await Auction.findOne({ status: 'LIVE' });
+  if (live) return false;
+  const poolSize = await Player.countDocuments({ status: { $in: POOL_STATUSES } });
+  if (poolSize === 0) return false;
   try {
-    return await startAuction({ adminId });
+    await startAuction({});
+    return true;
   } catch (err) {
-    console.warn('Auto-next failed:', err.message);
-    return null;
+    console.warn('Scheduled auto-start failed:', err.message);
+    return false;
   }
 }
 
@@ -474,7 +507,7 @@ async function markSold({ auctionId, adminId, teamId, amount }) {
   });
 
   const next = await maybeAutoNext(adminId);
-  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next) };
+  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next && !next.scheduled), nextPlayerAt: next && next.nextPlayerAt ? next.nextPlayerAt : null };
 }
 
 async function markUnsold({ auctionId, adminId, silent = false }) {
@@ -509,7 +542,7 @@ async function markUnsold({ auctionId, adminId, silent = false }) {
   });
 
   const next = await maybeAutoNext(adminId);
-  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next) };
+  return { ...result, state: next ? next.state : state, autoStarted: Boolean(next && !next.scheduled), nextPlayerAt: next && next.nextPlayerAt ? next.nextPlayerAt : null };
 }
 
 /** Takes a player off the block without recording a result (e.g. started by mistake). */
@@ -780,6 +813,7 @@ async function getPool() {
 module.exports = {
   getCurrentState,
   getVersion,
+  runDueAutoStart,
   startAuction,
   nextPlayer,
   placeBid,

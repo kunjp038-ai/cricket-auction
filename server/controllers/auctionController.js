@@ -8,6 +8,7 @@ const auctionService = require('../services/auctionService');
  */
 exports.version = asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-store');
+  await auctionService.runDueAutoStart();
   const version = await auctionService.getVersion();
   const since = req.query.since;
   if (since !== undefined && since === version) {
@@ -18,6 +19,7 @@ exports.version = asyncHandler(async (req, res) => {
 });
 
 exports.current = asyncHandler(async (req, res) => {
+  await auctionService.runDueAutoStart();
   const state = await auctionService.getCurrentState();
   res.json({ success: true, ...state });
 });
@@ -49,12 +51,13 @@ exports.sold = asyncHandler(async (req, res) => {
   });
   res.json({
     success: true,
-    message: `${result.player.name} SOLD to ${result.team.name} for ₹${result.finalBid.toLocaleString('en-IN')}${result.autoStarted ? ' · next player is up' : ''}`,
+    message: `${result.player.name} SOLD to ${result.team.name} for ₹${result.finalBid.toLocaleString('en-IN')}${result.autoStarted ? ' · next player is up' : result.nextPlayerAt ? ' · next player in a moment' : ''}`,
     auction: result.auction,
     player: result.player,
     team: result.team,
     state: result.state,
     autoStarted: result.autoStarted,
+    nextPlayerAt: result.nextPlayerAt || null,
   });
 });
 
@@ -62,10 +65,11 @@ exports.unsold = asyncHandler(async (req, res) => {
   const result = await auctionService.markUnsold({ auctionId: req.params.id, adminId: req.admin._id });
   res.json({
     success: true,
-    message: `${result.player.name} marked UNSOLD${result.autoStarted ? ' · next player is up' : ''}`,
+    message: `${result.player.name} marked UNSOLD${result.autoStarted ? ' · next player is up' : result.nextPlayerAt ? ' · next player in a moment' : ''}`,
     auction: result.auction,
     state: result.state,
     autoStarted: result.autoStarted,
+    nextPlayerAt: result.nextPlayerAt || null,
   });
 });
 

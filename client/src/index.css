@@ -340,3 +340,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .crop-frame:active { cursor: grabbing; }
 .crop-frame img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
 .crop-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(255,255,255,.25) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.25) 1px, transparent 1px); background-size: 33.34% 33.34%; }
+
+/* ---------- Rest between players ---------- */
+.next-countdown { padding: 1.5rem; border-color: rgba(56,189,248,.5); }
+.next-countdown .num { font-size: 4rem; font-weight: 900; line-height: 1; color: #7dd3fc; margin: .3rem 0; animation: tickpulse 1s infinite; }
+.next-countdown.big { padding: 3rem; }
+.next-countdown.big .num { font-size: 8rem; }

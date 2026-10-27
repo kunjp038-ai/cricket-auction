@@ -7,6 +7,7 @@ import Modal from '../components/Modal.jsx';
 import Spinner from '../components/Spinner.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import CountdownTimer from '../components/CountdownTimer.jsx';
+import NextPlayerCountdown from '../components/NextPlayerCountdown.jsx';
 import SoundToggle from '../components/SoundToggle.jsx';
 import { playEvent, setCustomSoundUrls } from '../utils/sound.js';
 import { auctionApi } from '../services/api.js';
@@ -73,7 +74,7 @@ export default function AuctionPage() {
   };
 
   if (!state) return <Spinner full />;
-  const { auction, teams, settings, stats, roundConfig, serverTime, bids = [] } = state;
+  const { auction, teams, settings, stats, roundConfig, serverTime, bids = [], nextPlayerAt } = state;
   const player = auction?.player;
   const inc1 = settings.bidIncrement || 500;
   const inc2 = settings.bidIncrement2 || 1000;
@@ -140,7 +141,9 @@ export default function AuctionPage() {
         <div className="card kpi tone-warning"><span className="label">Bid Buttons</span><span className="value">+{inc1} / +{inc2}</span></div>
       </div>
 
-      {!auction ? (
+      {!auction && nextPlayerAt ? (
+        <div className="mb"><NextPlayerCountdown nextPlayerAt={nextPlayerAt} serverTime={serverTime} onSkip={() => run('start', () => auctionApi.start())} /></div>
+      ) : !auction ? (
         <div className="card mb">
           <EmptyState icon="🔨" title="No player on the block">
             <p className="muted">{stats.playersRemaining > 0 ? `${stats.playersRemaining} players are waiting in the pool for Round ${stats.round} (base price ${inr(roundConfig.basePrice)}).` : 'The pool for this round is empty. Start a re-auction round to bring back unsold players.'}</p>
@@ -218,7 +221,7 @@ export default function AuctionPage() {
                   <button className="btn btn-accent" disabled={!!busy || !!manualErr} onClick={() => run('sold', () => auctionApi.sold(auction._id, { teamId: manualTeam, amount: manualAmt }))}>SOLD at manual price</button>
                 </div>
               )}
-              {settings.autoNextPlayer && <span className="help text-center">Next player comes up automatically after SOLD / UNSOLD.</span>}
+              {settings.autoNextPlayer && <span className="help text-center">Next player comes up automatically {settings.autoNextDelaySeconds > 0 ? `${settings.autoNextDelaySeconds}s` : 'right'} after SOLD / UNSOLD.</span>}
             </div>
           </div>
 
