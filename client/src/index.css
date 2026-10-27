@@ -346,3 +346,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .next-countdown .num { font-size: 4rem; font-weight: 900; line-height: 1; color: #7dd3fc; margin: .3rem 0; animation: tickpulse 1s infinite; }
 .next-countdown.big { padding: 3rem; }
 .next-countdown.big .num { font-size: 8rem; }
+
+.squad-price { font-weight: 800; font-variant-numeric: tabular-nums; color: #86efac; white-space: nowrap; }

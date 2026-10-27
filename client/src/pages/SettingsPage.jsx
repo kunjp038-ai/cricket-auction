@@ -44,6 +44,7 @@ export default function SettingsPage() {
         autoNextPlayer: Boolean(form.autoNextPlayer),
         autoNextDelaySeconds: Number(form.autoNextDelaySeconds ?? 5),
         showBidsOnLive: form.showBidsOnLive !== false,
+        showPricesOnLiveTeams: form.showPricesOnLiveTeams === true,
         auctionOrder: form.auctionOrder || 'random',
         sounds: form.sounds || {},
         roundConfigs: form.roundConfigs.map((rc) => ({ round: Number(rc.round), basePrice: Number(rc.basePrice), timerSeconds: Number(rc.timerSeconds) })),
@@ -116,6 +117,10 @@ export default function SettingsPage() {
             <div className="field full">
               <label className="toggle"><input type="checkbox" checked={form.showBidsOnLive !== false} onChange={set('showBidsOnLive')} /> Show bid amounts on the public live screen</label>
               <span className="help">When off, the audience sees only the player, timer and the leading team name. Bid amounts, the bid list and the sold price stay hidden. The admin console always shows them.</span>
+            </div>
+            <div className="field full">
+              <label className="toggle"><input type="checkbox" checked={form.showPricesOnLiveTeams === true} onChange={set('showPricesOnLiveTeams')} /> Show sold prices on the live screen's Teams tab</label>
+              <span className="help">When on, each player in a team card shows the price they were bought for, plus the team's total spent. When off, only names are shown.</span>
             </div>
             <div className="field"><label>Rest between players (seconds)</label><input type="number" min="0" max="120" step="1" value={form.autoNextDelaySeconds ?? 5} onChange={set('autoNextDelaySeconds')} /><span className="help">Pause after SOLD / UNSOLD before the next player appears. 0 = no pause.</span></div>
             <div className="field full">

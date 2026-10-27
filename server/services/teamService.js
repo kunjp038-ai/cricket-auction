@@ -1,4 +1,4 @@
-const { Team, Captain, Player, Auction, Transaction } = require('../models');
+const { Team, Captain, Player, Auction, Transaction, Settings } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { runInTransaction } = require('../utils/transaction');
 const { emitAuctionEvent } = require('../utils/socket');
@@ -228,13 +228,18 @@ function escapeRegex(str = '') {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Public squads for the live screen: team, captain and bought players. No money fields. */
+/**
+ * Public squads for the live screen: team, captain and bought players.
+ * Prices are included only when Settings.showPricesOnLiveTeams is on.
+ */
 async function listSquadsPublic() {
+  const settings = await Settings.get();
+  const showPrices = settings.showPricesOnLiveTeams === true;
   const teams = await Team.find()
     .sort({ name: 1 })
-    .select('name logo color captain players maxPlayers')
+    .select('name logo color captain players maxPlayers usedBudget')
     .populate('captain', 'name photo')
-    .populate('players', 'name playerNo photo playerType canKeepWicket allRounderPriority squadRole battingStyle bowlingStyle');
+    .populate('players', 'name playerNo photo playerType canKeepWicket allRounderPriority squadRole battingStyle bowlingStyle soldPrice');
   return teams.map((t) => ({
     _id: t._id,
     name: t.name,
@@ -242,8 +247,10 @@ async function listSquadsPublic() {
     color: t.color,
     captain: t.captain ? { name: t.captain.name, photo: t.captain.photo } : null,
     maxPlayers: t.maxPlayers,
+    showPrices,
+    ...(showPrices ? { totalSpent: t.usedBudget } : {}),
     players: (t.players || [])
-      .map((p) => ({ _id: p._id, name: p.name, playerNo: p.playerNo, photo: p.photo, playerType: p.playerType, canKeepWicket: p.canKeepWicket, allRounderPriority: p.allRounderPriority, squadRole: p.squadRole, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle }))
+      .map((p) => ({ _id: p._id, name: p.name, playerNo: p.playerNo, photo: p.photo, playerType: p.playerType, canKeepWicket: p.canKeepWicket, allRounderPriority: p.allRounderPriority, squadRole: p.squadRole, battingStyle: p.battingStyle, bowlingStyle: p.bowlingStyle, ...(showPrices ? { price: p.soldPrice } : {}) }))
       .sort((a, b) => ({ Captain: 0, Icon: 1 }[a.squadRole] ?? 2) - ({ Captain: 0, Icon: 1 }[b.squadRole] ?? 2) || (a.playerNo || 0) - (b.playerNo || 0)),
   }));
 }

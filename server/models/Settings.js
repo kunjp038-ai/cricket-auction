@@ -47,6 +47,8 @@ const settingsSchema = new mongoose.Schema(
     autoNextPlayer: { type: Boolean, default: true },
     // Public live screen: show bid amounts / bid list (false = only player, timer and leading team).
     showBidsOnLive: { type: Boolean, default: true },
+    // Public live screen, Teams tab: show each player's sold price and the team total.
+    showPricesOnLiveTeams: { type: Boolean, default: false },
     // Pause (seconds) after SOLD / UNSOLD before the next player comes up.
     autoNextDelaySeconds: { type: Number, default: 5, min: 0, max: 120 },
     // When set, the next player is started automatically once this time is reached.

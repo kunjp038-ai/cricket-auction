@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Avatar from './Avatar.jsx';
 import Spinner from './Spinner.jsx';
 import { teamsApi } from '../services/api.js';
-import { roleLabel, squadRoleTag } from '../utils/format.js';
+import { roleLabel, squadRoleTag, inr } from '../utils/format.js';
 
 /**
  * Public "Teams" view for the live screen: every team with its captain and the players it
@@ -33,7 +33,7 @@ export default function LiveSquads() {
             <Avatar src={t.logo} name={t.name} square color={t.color} />
             <div className="grow" style={{ minWidth: 0 }}>
               <h2 style={{ margin: 0 }}>{t.name}</h2>
-              <div className="small muted">{t.captain ? `Captain: ${t.captain.name}` : 'Captain: –'} · {t.players.length} player{t.players.length === 1 ? '' : 's'}</div>
+              <div className="small muted">{t.captain ? `Captain: ${t.captain.name}` : 'Captain: –'} · {t.players.length} player{t.players.length === 1 ? '' : 's'}{t.showPrices ? ` · spent ${inr(t.totalSpent || 0)}` : ''}</div>
             </div>
           </div>
           {t.players.length === 0 ? (
@@ -45,6 +45,7 @@ export default function LiveSquads() {
                   <Avatar src={p.photo} name={p.name} size="sm" />
                   <span className="player-no sm">#{p.playerNo ?? '-'}</span>
                   <span className="grow"><strong>{p.name}</strong>{squadRoleTag(p) && <span className="role-tag">{squadRoleTag(p)}</span>}<span className="small muted"> · {roleLabel(p)}</span></span>
+                  {t.showPrices && <span className="squad-price">{inr(p.price || 0)}</span>}
                 </li>
               ))}
             </ul>
