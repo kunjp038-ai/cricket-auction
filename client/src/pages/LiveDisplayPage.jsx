@@ -42,7 +42,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
 
   useEffect(() => { if (state?.settings?.sounds) setCustomSoundUrls(state.settings.sounds); }, [state?.settings?.sounds]);
 
-  const { connected, polling } = useAuctionSocket(
+  const { connected, polling, audience } = useAuctionSocket(
     async (event, payload) => {
       if (payload?.state) setState(payload.state);
       if (event === 'auction:started') playEvent('start');
@@ -75,10 +75,11 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
         }
       }
     },
-    { poll: true, interval: 700 }
+    { poll: true, interval: 700, kind: 'viewer' }
   );
 
   if (!state) return <Spinner full />;
+  const watching = audience ? audience.viewers : state.audience?.viewers;
   const { auction, settings, stats, roundConfig, serverTime, bids = [], recentReleases = [], nextPlayerAt } = state;
   const showBids = settings.showBidsOnLive !== false;
   const hasBids = !!auction && auction.bidCount > 0;
@@ -98,7 +99,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Round {stats.round}</h1>
           </div>
           <div className="stack gap-sm" style={{ alignItems: 'flex-end' }}>
-            <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected || polling ? 'LIVE' : 'Reconnecting…'}</span>
+            <span className="small muted flex gap-sm"><span className={`live-dot ${connected || polling ? 'on' : ''}`} />{connected || polling ? 'LIVE' : 'Reconnecting…'}{typeof watching === 'number' && <span className="watching">👁 {watching} watching</span>}</span>
             <SoundToggle />
           </div>
         </div>

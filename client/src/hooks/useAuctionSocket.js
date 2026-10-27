@@ -13,8 +13,18 @@ import { auctionApi } from '../services/api.js';
  *              call onEvent('poll', { state }). Used by the auction screens.
  *   interval – polling interval in ms (default 3000).
  */
-export function useAuctionSocket(onEvent, { poll = false, interval = 700 } = {}) {
+/** Random id for this browser tab so the server can count open screens. */
+function tabId() {
+  try {
+    let id = sessionStorage.getItem('auction_tab_id');
+    if (!id) { id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); sessionStorage.setItem('auction_tab_id', id); }
+    return id;
+  } catch (e) { return 'tab' + Math.random().toString(36).slice(2, 10); }
+}
+
+export function useAuctionSocket(onEvent, { poll = false, interval = 700, kind = 'viewer' } = {}) {
   const [connected, setConnected] = useState(false);
+  const [audience, setAudience] = useState(null);
   const handlerRef = useRef(onEvent);
   handlerRef.current = onEvent;
 
@@ -51,8 +61,9 @@ export function useAuctionSocket(onEvent, { poll = false, interval = 700 } = {})
       if (busy) return;
       busy = true;
       try {
-        const v = await auctionApi.version(lastVersion);
+        const v = await auctionApi.version(lastVersion, tabId(), kind);
         if (cancelled) return;
+        if (v.audience) setAudience(v.audience);
         if (v.changed && v.state) {
           lastVersion = v.version;
           if (handlerRef.current) handlerRef.current('poll', { state: v.state });
@@ -70,7 +81,7 @@ export function useAuctionSocket(onEvent, { poll = false, interval = 700 } = {})
       cancelled = true;
       clearInterval(id);
     };
-  }, [poll, connected, interval]);
+  }, [poll, connected, interval, kind]);
 
-  return { connected, polling: poll && !connected, socketDisabled: SOCKET_DISABLED };
+  return { connected, polling: poll && !connected, socketDisabled: SOCKET_DISABLED, audience };
 }

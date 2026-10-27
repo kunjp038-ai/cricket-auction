@@ -38,14 +38,14 @@ export default function AuctionPage() {
   const load = useCallback(() => auctionApi.current().then(setState).catch((e) => toast.error(e.message)), [toast]);
   useEffect(() => { load(); }, [load]);
 
-  const { connected, polling } = useAuctionSocket(
+  const { connected, polling, audience } = useAuctionSocket(
     (event, payload) => {
       if (payload?.state) setState(payload.state);
       if (event === 'auction:sold') playEvent('sold');
       if (event === 'auction:unsold') playEvent('unsold');
       if (event === 'auction:started') playEvent('start');
     },
-    { poll: true, interval: 1000 }
+    { poll: true, interval: 1000, kind: 'admin' }
   );
 
   // Music URLs from Settings.
@@ -138,7 +138,7 @@ export default function AuctionPage() {
         <div className="card kpi"><span className="label">Players Remaining</span><span className="value">{stats.playersRemaining}</span></div>
         <div className="card kpi tone-success"><span className="label">Total Sold</span><span className="value">{stats.totalSold}</span></div>
         <div className="card kpi tone-danger"><span className="label">Total Unsold</span><span className="value">{stats.totalUnsold}</span></div>
-        <div className="card kpi tone-warning"><span className="label">Bid Buttons</span><span className="value">+{inc1} / +{inc2}</span></div>
+        <div className="card kpi tone-info"><span className="label">Live Viewers</span><span className="value">👁 {(audience || state.audience)?.viewers ?? '–'}</span></div>
       </div>
 
       {!auction && nextPlayerAt ? (

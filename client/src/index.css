@@ -350,3 +350,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .squad-price { font-weight: 800; font-variant-numeric: tabular-nums; color: #86efac; white-space: nowrap; }
 
 .danger-zone { border-color: rgba(239,68,68,.5); }
+
+.watching { margin-left: .6rem; padding: .15rem .55rem; border-radius: 999px; background: rgba(56,189,248,.15); border: 1px solid rgba(56,189,248,.4); color: #7dd3fc; font-weight: 700; }

@@ -9,4 +9,5 @@ module.exports = {
   Round: require('./Round'),
   Settings: require('./Settings'),
   Image: require('./Image'),
+  Presence: require('./Presence'),
 };

@@ -1,4 +1,5 @@
-const { Player, Team, Auction, Bid, Transaction, Round, Settings } = require('../models');
+const { Player, Team, Auction, Bid, Transaction, Round, Settings, Presence } = require('../models');
+const { getIO } = require('../utils/socket');
 const { POOL_STATUSES } = require('../models/Player');
 const ApiError = require('../utils/ApiError');
 const { runInTransaction } = require('../utils/transaction');
@@ -211,6 +212,30 @@ async function maybeAutoNext(adminId) {
   await settings.save();
   const state = await broadcast('auction:next-scheduled', { message: `Next player in ${delay}s`, nextPlayerAt: settings.pendingNextAt });
   return { state, scheduled: true, nextPlayerAt: settings.pendingNextAt };
+}
+
+/** Records a screen heartbeat (polling clients) and returns how many screens are watching. */
+async function touchPresence({ clientId, kind }) {
+  if (clientId && /^[A-Za-z0-9_-]{6,64}$/.test(clientId)) {
+    await Presence.updateOne(
+      { clientId },
+      { $set: { lastSeen: new Date(), kind: kind === 'admin' ? 'admin' : 'viewer' } },
+      { upsert: true }
+    );
+  }
+  return countViewers();
+}
+
+/** Screens active in the last 45 s (polling) plus live socket connections. */
+async function countViewers() {
+  const since = new Date(Date.now() - 45 * 1000);
+  const [viewers, admins] = await Promise.all([
+    Presence.countDocuments({ kind: 'viewer', lastSeen: { $gt: since } }),
+    Presence.countDocuments({ kind: 'admin', lastSeen: { $gt: since } }),
+  ]);
+  const io = getIO();
+  const sockets = io ? io.of('/').sockets.size : 0;
+  return { viewers: viewers + sockets, admins };
 }
 
 /** Called by polling/reads: if a scheduled next player is due, put it on the block. */
@@ -814,6 +839,8 @@ module.exports = {
   getCurrentState,
   getVersion,
   runDueAutoStart,
+  touchPresence,
+  countViewers,
   startAuction,
   nextPlayer,
   placeBid,

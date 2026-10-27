@@ -10,19 +10,22 @@ const ApiError = require('../utils/ApiError');
 exports.version = asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-store');
   await auctionService.runDueAutoStart();
-  const version = await auctionService.getVersion();
+  const [version, audience] = await Promise.all([
+    auctionService.getVersion(),
+    auctionService.touchPresence({ clientId: req.query.client, kind: req.query.kind }),
+  ]);
   const since = req.query.since;
   if (since !== undefined && since === version) {
-    return res.json({ success: true, version, changed: false, serverTime: new Date() });
+    return res.json({ success: true, version, changed: false, serverTime: new Date(), audience });
   }
   const state = await auctionService.getCurrentState();
-  res.json({ success: true, version: state.version || version, changed: true, state, serverTime: new Date() });
+  res.json({ success: true, version: state.version || version, changed: true, state, serverTime: new Date(), audience });
 });
 
 exports.current = asyncHandler(async (req, res) => {
   await auctionService.runDueAutoStart();
-  const state = await auctionService.getCurrentState();
-  res.json({ success: true, ...state });
+  const [state, audience] = await Promise.all([auctionService.getCurrentState(), auctionService.countViewers()]);
+  res.json({ success: true, ...state, audience });
 });
 
 exports.start = asyncHandler(async (req, res) => {
