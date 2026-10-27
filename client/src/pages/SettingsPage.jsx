@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import PageHeader from '../components/PageHeader.jsx';
 import Spinner from '../components/Spinner.jsx';
 import SoundSettings from '../components/SoundSettings.jsx';
-import { settingsApi, authApi } from '../services/api.js';
+import { settingsApi, authApi, auctionApi } from '../services/api.js';
+import Modal from '../components/Modal.jsx';
 import { useToast } from '../hooks/useToast.jsx';
 import { inr } from '../utils/format.js';
 
@@ -11,6 +12,22 @@ export default function SettingsPage() {
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetText, setResetText] = useState('');
+  const [keepSpecial, setKeepSpecial] = useState(true);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetResult, setResetResult] = useState(null);
+
+  const doReset = async () => {
+    setResetBusy(true);
+    try {
+      const r = await auctionApi.reset(keepSpecial);
+      setResetResult(r.summary);
+      toast.success(r.message, 8000);
+      setResetOpen(false);
+      setResetText('');
+    } catch (e) { toast.error(e.message); } finally { setResetBusy(false); }
+  };
 
   useEffect(() => { settingsApi.get().then((r) => setForm(r.settings)).catch((e) => toast.error(e.message)); }, [toast]);
 
@@ -61,8 +78,20 @@ export default function SettingsPage() {
 
   if (!form) return <Spinner full />;
 
+  const resetModal = (
+    <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset the whole auction?" size="sm">
+      <p className="muted" style={{ marginTop: 0 }}>This clears every sale, bid and round and puts all players back in the pool. {keepSpecial ? 'Captain & Icon picks will be kept.' : 'Captain & Icon picks will also be removed.'} This cannot be undone.</p>
+      <div className="field"><label>Type <strong>RESET</strong> to confirm</label><input value={resetText} onChange={(e) => setResetText(e.target.value.toUpperCase())} placeholder="RESET" autoFocus /></div>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-ghost" onClick={() => setResetOpen(false)}>Cancel</button>
+        <button type="button" className="btn btn-danger" disabled={resetText !== 'RESET' || resetBusy} onClick={doReset}>{resetBusy ? 'Resetting…' : 'Yes, reset auction'}</button>
+      </div>
+    </Modal>
+  );
+
   return (
     <>
+      {resetModal}
       <PageHeader title="Auction Settings" subtitle="Base price and timer per round, auction behaviour, admin password" />
       <div className="grid grid-2">
         <form className="card" onSubmit={save}>
@@ -141,6 +170,15 @@ export default function SettingsPage() {
               <li>Teams bid out loud. When bidding ends, select the winning team, enter the final price and press <strong>SOLD</strong>, or press <strong>UNSOLD</strong>.</li>
               <li>The next player appears automatically. When the round is finished, start the re-auction round: unsold players come back at that round's base price.</li>
             </ol>
+          </div>
+          <div className="card danger-zone">
+            <h2>Reset auction</h2>
+            <p className="small muted" style={{ marginTop: 0 }}>Fresh start: all auction records, bids and rounds are cleared, every player becomes Available again and every team's budget is restored. Players, teams, captains, photos and these settings are kept. Use this after a test run, before the real auction.</p>
+            <label className="toggle" style={{ marginBottom: '.6rem' }}><input type="checkbox" checked={keepSpecial} onChange={(e) => setKeepSpecial(e.target.checked)} /> Keep each team's Captain &amp; Icon picks</label>
+            <button type="button" className="btn btn-danger" onClick={() => { setResetText(''); setResetOpen(true); }}>🔄 Reset auction…</button>
+            {resetResult && (
+              <p className="small muted" style={{ marginBottom: 0 }}>Last reset: {resetResult.playersAvailable} players available · {resetResult.picksKept} picks kept · {resetResult.deleted.auctions} auction records, {resetResult.deleted.bids} bids cleared.</p>
+            )}
           </div>
           <form className="card" onSubmit={changePw}>
             <h2>Change admin password</h2>

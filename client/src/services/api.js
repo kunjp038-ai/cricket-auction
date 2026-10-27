@@ -95,6 +95,7 @@ export const auctionApi = {
   resetTimer: (auctionId, seconds) => api.post(`/auctions/${auctionId}/timer`, seconds ? { seconds } : {}),
   next: () => api.post('/auctions/next'),
   reauction: (includeUnsold = true) => api.post('/auctions/reauction', { includeUnsold }),
+  reset: (keepSpecial = true) => api.post('/auctions/reset', { confirm: 'RESET', keepSpecial }),
   history: (params) => api.get('/auctions/history', { params }),
   rounds: () => api.get('/auctions/rounds'),
   pool: () => api.get('/auctions/pool'),

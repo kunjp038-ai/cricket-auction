@@ -348,3 +348,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .next-countdown.big .num { font-size: 8rem; }
 
 .squad-price { font-weight: 800; font-variant-numeric: tabular-nums; color: #86efac; white-space: nowrap; }
+
+.danger-zone { border-color: rgba(239,68,68,.5); }

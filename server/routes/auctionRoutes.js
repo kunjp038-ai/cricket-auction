@@ -15,6 +15,7 @@ router.get('/pool', ctrl.pool);
 router.post('/start', ctrl.start);
 router.post('/next', ctrl.next);
 router.post('/reauction', ctrl.reauction);
+router.post('/reset', ctrl.reset); // admin: fresh start (body { confirm: 'RESET', keepSpecial })
 router.post('/:id/bid', objectId('id'), bidBody, validate, ctrl.bid);
 router.post('/:id/sold', objectId('id'), soldBody, validate, ctrl.sold);
 router.post('/:id/unsold', objectId('id'), validate, ctrl.unsold);

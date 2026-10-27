@@ -1,5 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const auctionService = require('../services/auctionService');
+const ApiError = require('../utils/ApiError');
 
 /**
  * GET /auctions/version?since=<v>
@@ -98,6 +99,18 @@ exports.reauction = asyncHandler(async (req, res) => {
     success: true,
     message: `Round ${result.round.number} started with ${result.poolSize} players (${result.movedUnsold} unsold players moved to re-auction)`,
     ...result,
+  });
+});
+
+exports.reset = asyncHandler(async (req, res) => {
+  if (req.body.confirm !== 'RESET') throw ApiError.badRequest('Type RESET to confirm.');
+  const summary = await require('../services/resetService').resetAuction({
+    keepSpecial: req.body.keepSpecial !== false, adminId: req.admin._id,
+  });
+  res.json({
+    success: true,
+    message: `Auction reset. ${summary.playersAvailable} players available, ${summary.picksKept} Captain/Icon picks kept, ${summary.deleted.auctions} auction records cleared.`,
+    summary,
   });
 });
 
