@@ -74,7 +74,7 @@ export default function LiveDisplayPage({ initialTab = 'auction' }) {
         }
       }
     },
-    { poll: true, interval: 2500 }
+    { poll: true, interval: 700 }
   );
 
   if (!state) return <Spinner full />;

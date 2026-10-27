@@ -38,10 +38,26 @@ function computeNextBid(auction, settings) {
   return auction.bidCount === 0 ? auction.basePrice : auction.currentBid + settings.bidIncrement;
 }
 
+/**
+ * Cheap change stamp for polling clients (~4 tiny queries). Changes whenever an auction,
+ * bid, timer, sale, release, budget, settings or player changes.
+ */
+async function getVersion() {
+  const [a, t, s, p] = await Promise.all([
+    Auction.findOne().sort({ updatedAt: -1 }).select('updatedAt bidCount status timerEndsAt').lean(),
+    Transaction.findOne().sort({ createdAt: -1 }).select('createdAt').lean(),
+    Settings.findOne({ key: 'global' }).select('updatedAt currentRound').lean(),
+    Player.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
+  ]);
+  const ms = (d) => (d ? new Date(d).getTime() : 0);
+  return [ms(a && a.updatedAt), a ? a.bidCount : 0, a ? a.status : '', ms(a && a.timerEndsAt), ms(t && t.createdAt), ms(s && s.updatedAt), s ? s.currentRound : 0, ms(p && p.updatedAt)].join('-');
+}
+
 /** Full snapshot of the live auction screen: sent on every REST read and every socket event. */
 async function getCurrentState() {
   const settings = await Settings.get();
-  const [auction, teams, stats, releases] = await Promise.all([
+  const [version, auction, teams, stats, releases] = await Promise.all([
+    getVersion(),
     Auction.findOne({ status: 'LIVE' })
       .populate('player')
       .populate('highestBidder', 'name logo color')
@@ -78,6 +94,7 @@ async function getCurrentState() {
     roundConfig: settings.getRoundConfig(settings.currentRound),
     nextBidAmount: computeNextBid(auction, settings),
     serverTime: new Date(),
+    version,
   };
 }
 
@@ -762,6 +779,7 @@ async function getPool() {
 
 module.exports = {
   getCurrentState,
+  getVersion,
   startAuction,
   nextPlayer,
   placeBid,

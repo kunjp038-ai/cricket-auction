@@ -6,6 +6,7 @@ const { objectId, bidBody, soldBody } = require('../middleware/validators');
 
 // Public read-only endpoints (used by the big-screen live display).
 router.get('/current', ctrl.current);
+router.get('/version', ctrl.version); // tiny change stamp for fast polling
 router.get('/history', ctrl.history);
 router.get('/rounds', ctrl.rounds);
 

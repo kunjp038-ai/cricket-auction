@@ -13,7 +13,7 @@ import { auctionApi } from '../services/api.js';
  *              call onEvent('poll', { state }). Used by the auction screens.
  *   interval – polling interval in ms (default 3000).
  */
-export function useAuctionSocket(onEvent, { poll = false, interval = 3000 } = {}) {
+export function useAuctionSocket(onEvent, { poll = false, interval = 700 } = {}) {
   const [connected, setConnected] = useState(false);
   const handlerRef = useRef(onEvent);
   handlerRef.current = onEvent;
@@ -41,16 +41,28 @@ export function useAuctionSocket(onEvent, { poll = false, interval = 3000 } = {}
     };
   }, []);
 
-  // Polling fallback
+  // Polling fallback: check a tiny version stamp often; fetch the full state only when it changed.
   useEffect(() => {
     if (!poll || connected) return undefined;
     let cancelled = false;
+    let busy = false;
+    let lastVersion = null;
     const tick = async () => {
+      if (busy) return;
+      busy = true;
       try {
-        const state = await auctionApi.current();
-        if (!cancelled && handlerRef.current) handlerRef.current('poll', { state });
+        const v = await auctionApi.version();
+        if (cancelled) return;
+        if (v.version !== lastVersion) {
+          const state = await auctionApi.current();
+          if (cancelled) return;
+          lastVersion = state.version || v.version;
+          if (handlerRef.current) handlerRef.current('poll', { state });
+        }
       } catch (e) {
         /* network hiccup – try again next tick */
+      } finally {
+        busy = false;
       }
     };
     const id = setInterval(tick, interval);

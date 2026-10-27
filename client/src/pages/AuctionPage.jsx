@@ -44,7 +44,7 @@ export default function AuctionPage() {
       if (event === 'auction:unsold') playEvent('unsold');
       if (event === 'auction:started') playEvent('start');
     },
-    { poll: true, interval: 2500 }
+    { poll: true, interval: 1000 }
   );
 
   // Music URLs from Settings.

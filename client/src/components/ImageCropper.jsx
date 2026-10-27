@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal.jsx';
 
 /**
@@ -8,7 +8,8 @@ import Modal from './Modal.jsx';
  */
 export default function ImageCropper({ file, aspect = 3 / 4, outputWidth = 600, onDone, onCancel }) {
   const [src, setSrc] = useState('');
-  const [img, setImg] = useState(null);
+  const [orig, setOrig] = useState(null); // decoded original image
+  const [rot, setRot] = useState(0); // 0 | 90 | 180 | 270
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 }); // offset of image centre from frame centre (frame px)
   const frameRef = useRef(null);
@@ -23,10 +24,31 @@ export default function ImageCropper({ file, aspect = 3 / 4, outputWidth = 600, 
     const url = URL.createObjectURL(file);
     setSrc(url);
     const im = new Image();
-    im.onload = () => { setImg(im); setZoom(1); setPos({ x: 0, y: 0 }); };
+    im.onload = () => { setOrig(im); setRot(0); setZoom(1); setPos({ x: 0, y: 0 }); };
     im.src = url;
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  // Pre-rotate the original into a canvas; everything below works on the rotated image.
+  const img = useMemo(() => {
+    if (!orig) return null;
+    const swap = rot === 90 || rot === 270;
+    const c = document.createElement('canvas');
+    c.width = swap ? orig.height : orig.width;
+    c.height = swap ? orig.width : orig.height;
+    const ctx = c.getContext('2d');
+    ctx.translate(c.width / 2, c.height / 2);
+    ctx.rotate((rot * Math.PI) / 180);
+    ctx.drawImage(orig, -orig.width / 2, -orig.height / 2);
+    return c;
+  }, [orig, rot]);
+  const viewSrc = useMemo(() => (img ? img.toDataURL('image/jpeg', 0.9) : ''), [img]);
+
+  const rotate = (delta) => {
+    setRot((r) => (r + delta + 360) % 360);
+    setZoom(1);
+    setPos({ x: 0, y: 0 });
+  };
 
   if (!file) return null;
 
@@ -107,7 +129,7 @@ export default function ImageCropper({ file, aspect = 3 / 4, outputWidth = 600, 
 
   return (
     <Modal open onClose={onCancel} title="Crop photo" size="sm">
-      <p className="small muted" style={{ marginTop: 0 }}>Drag the photo to position it. Use the slider, mouse wheel or pinch to zoom.</p>
+      <p className="small muted" style={{ marginTop: 0 }}>Drag the photo to position it. Use the slider, mouse wheel or pinch to zoom. Rotate if the photo is sideways.</p>
       <div
         ref={frameRef}
         className="crop-frame"
@@ -122,7 +144,7 @@ export default function ImageCropper({ file, aspect = 3 / 4, outputWidth = 600, 
       >
         {img && (
           <img
-            src={src}
+            src={viewSrc}
             alt=""
             draggable={false}
             style={{
@@ -134,7 +156,11 @@ export default function ImageCropper({ file, aspect = 3 / 4, outputWidth = 600, 
         )}
         <div className="crop-grid" />
       </div>
-      <div className="flex" style={{ marginTop: '.8rem' }}>
+      <div className="flex" style={{ marginTop: '.8rem', justifyContent: 'center' }}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => rotate(-90)} title="Rotate left">↺ Rotate left</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => rotate(90)} title="Rotate right">↻ Rotate right</button>
+      </div>
+      <div className="flex" style={{ marginTop: '.6rem' }}>
         <span className="small muted">Zoom</span>
         <input type="range" min="1" max="4" step="0.01" value={zoom} onChange={(e) => { const z = Number(e.target.value); setZoom(z); setPos((p) => clamp(p, z)); }} style={{ padding: 0 }} />
       </div>

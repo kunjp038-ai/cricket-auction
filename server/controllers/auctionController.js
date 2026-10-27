@@ -1,6 +1,11 @@
 const asyncHandler = require('../utils/asyncHandler');
 const auctionService = require('../services/auctionService');
 
+exports.version = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, version: await auctionService.getVersion(), serverTime: new Date() });
+});
+
 exports.current = asyncHandler(async (req, res) => {
   const state = await auctionService.getCurrentState();
   res.json({ success: true, ...state });
